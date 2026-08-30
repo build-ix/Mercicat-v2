@@ -4,6 +4,7 @@ import { hashGameState } from "./stateHash";
 import { updateEntities, finalizeLifecycle } from "./systems/entitySystem";
 import { processCollisions } from "./systems/collisionSystem";
 import { applyDamage } from "./systems/damageSystem";
+import { spawnEnemies } from "./enemies";
 
 export interface SimulationContext { readonly rng: SeededRandom; }
 
@@ -13,11 +14,15 @@ export function step(previous: GameState, commands: readonly InputCommand[], con
   if (state.phase !== "playing") return { state, events, stateHash: hashGameState(state) };
   const tickCommands = commands.filter((c) => c.tick === state.tick).sort(compareCommands);
   applyCommands(state, tickCommands, events);
-  if (state.wave.spawnedForWave === 0 && !state.wave.waveComplete) spawnWave(state, context.rng, events);
+  if (state.wave.spawnedForWave === 0 && !state.wave.waveComplete) spawnEnemies(state, context.rng, state.wave.currentWave, events);
   updateEntities(state, context.rng, events);
   applyDamage(state, processCollisions(state), events);
   finalizeLifecycle(state, events);
   updateWaveState(state, context.rng, events);
+  if (Object.values(state.entities).some((e) => e.kind === "player" && e.health <= 0)) {
+    state.phase = "defeat";
+    events.push({ type: "matchDefeated", tick: state.tick, wave: state.wave.currentWave });
+  }
   state.tick += 1;
   return { state, events, stateHash: hashGameState(state) };
 }
@@ -52,20 +57,9 @@ function updateWaveState(state: GameState, rng: SeededRandom, events: Simulation
     events.push({ type: "matchCompleted", tick: state.tick, wave: state.wave.currentWave });
   } else {
     state.wave.currentWave += 1; state.wave.spawnedForWave = 0; state.wave.defeatedForWave = 0; state.wave.waveComplete = false;
-    spawnWave(state, rng, events);
+    spawnEnemies(state, rng, state.wave.currentWave, events);
   }
 }
-function spawnWave(state: GameState, rng: SeededRandom, events: SimulationEvent[]): void {
-  const count = 3 + state.wave.currentWave * 2;
-  for (let i = 0; i < count; i += 1) {
-    const id = state.nextEntityId++; const health = 10 + state.wave.currentWave * 2;
-    state.entities[id] = { id, kind: "enemy", lifecycle: "active", position: { x: rng.nextInt(-500, 500), y: rng.nextInt(-500, 500) },
-      velocity: { x: 0, y: 0 }, radius: 16, health, maxHealth: health, spawnTick: state.tick, despawnTick: null,
-      enemyType: "basic", contactDamage: 1, fireCooldownTicks: 0, targetPlayerId: null };
-    state.wave.spawnedForWave += 1;
-    events.push({ type: "entitySpawned", tick: state.tick, entityId: id, kind: "enemy" });
-  }
-  events.push({ type: "waveStarted", tick: state.tick, wave: state.wave.currentWave });
-}
+
 function clamp(value: number, min: number, max: number): number { return Math.max(min, Math.min(max, value)); }
 export type { Tick, EntityId };

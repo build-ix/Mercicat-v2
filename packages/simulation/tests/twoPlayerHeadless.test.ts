@@ -17,7 +17,7 @@ function run(seed: string, changed = false): string[] {
     const commands = [script(tick, 1), script(tick, 2, changed)];
     clients.forEach((client, index) => client.recordInput({ sequence: tick, tick, command: commands[index] }));
     state = step(state, commands, { rng }).state;
-    const snapshot = { tick: state.tick, state, stateHash: hashGameState(state) };
+    const snapshot = { tick: state.tick, state, stateHash: hashGameState(state), rngState: rng.serialize() };
     clients.forEach((client) => client.reconcile(snapshot, tick));
     hashes.push(hashGameState(state));
   }

@@ -70,6 +70,9 @@ export class ClientReconciler {
 
     // Replace the authoritative baseline before replaying anything.
     let rebuilt = structuredClone(snapshot.state);
+    // The RNG must be rewound to the exact point represented by the snapshot;
+    // otherwise a replay that consumes randomness diverges permanently.
+    if (snapshot.rngState) this.rng = SeededRandom.deserialize(snapshot.rngState);
     for (const input of oldPending) rebuilt = step(rebuilt, [input.command], { rng: this.rng }).state;
     this.state = rebuilt;
     this.lastServerTick = snapshot.tick;

@@ -7,3 +7,6 @@ export * from "./twoPlayerHeadless";
 export * from "./systems/entitySystem";
 export * from "./systems/collisionSystem";
 export * from "./systems/damageSystem";
+export * from "./enemies";
+export * from "./collision";
+export * from "./waves";

@@ -76,6 +76,28 @@ importers:
       typescript:
         specifier: ^5.6.0
         version: 5.9.3
+      vitest:
+        specifier: ^1.6.1
+        version: 1.6.1(@types/node@22.20.1)
+
+  packages/client:
+    dependencies:
+      '@mercicat/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@mercicat/simulation':
+        specifier: workspace:*
+        version: link:../simulation
+      three:
+        specifier: ^0.185.0
+        version: 0.185.1
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.0.0
+        version: 1.6.1(@types/node@22.20.1)
 
   packages/content:
     dependencies:
@@ -1114,6 +1136,9 @@ packages:
 
   three@0.128.0:
     resolution: {integrity: sha512-i0ap/E+OaSfzw7bD1TtYnPo3VEplkl70WX5fZqZnfZsE3k3aSFudqrrC9ldFZfYFkn1zwDmBcdGfiIm/hnbyZA==}
+
+  three@0.185.1:
+    resolution: {integrity: sha512-5aojFCXKwnjBRZvUnt3WFfEcvUJgkN5LlijRFN95hMy8WVkG4I0QNcJE+OuWvuJ0bOdStrbfXn0pkd6/QyiAlg==}
 
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
@@ -2256,6 +2281,8 @@ snapshots:
       has-flag: 4.0.0
 
   three@0.128.0: {}
+
+  three@0.185.1: {}
 
   tinybench@2.9.0: {}
 

@@ -22,6 +22,9 @@ export interface NetworkSnapshot {
   readonly tick: Tick;
   readonly state: GameState;
   readonly stateHash: string;
+  /** Canonical eight-digit hexadecimal state of the server simulation RNG. */
+  /** Canonical eight-digit hexadecimal state of the server simulation RNG. */
+  readonly rngState: string;
   readonly checksum?: string;
 }
 

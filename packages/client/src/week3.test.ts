@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createInitialState, hashGameState } from "@mercicat/simulation";
 import { ClientReconciler } from "./reconciliation";
 import { NetworkDiagnostics } from "./diagnostics";
+import { SeededRandom } from "@mercicat/shared";
 
 describe("client reconciliation and diagnostics", () => {
   it("keeps a bounded prediction history and replaces the baseline", () => {
@@ -10,14 +11,14 @@ describe("client reconciliation and diagnostics", () => {
     for (let tick = 0; tick < 20; tick += 1) client.recordInput({ sequence: tick, tick, command: { type: "move", tick, playerId: 1, direction: { x: 1, y: 0 } } });
     expect(client.pendingCount).toBe(4);
     const state = structuredClone(initial); state.tick = 20; state.score = 9;
-    client.reconcile({ tick: 20, state, stateHash: hashGameState(state) }, Number.POSITIVE_INFINITY);
+    client.reconcile({ tick: 20, state, stateHash: hashGameState(state), rngState: new SeededRandom(state.seed).serialize() }, Number.POSITIVE_INFINITY);
     expect(client.state.score).toBe(9);
     expect(client.pendingCount).toBe(0);
   });
   it("records RTT, queue depth, and ordering diagnostics", () => {
     const diagnostics = new NetworkDiagnostics();
     const state = createInitialState(1, [1]);
-    const snapshot = { tick: 2, state, stateHash: hashGameState(state) };
+    const snapshot = { tick: 2, state, stateHash: hashGameState(state), rngState: new SeededRandom(state.seed).serialize() };
     diagnostics.inputSent(2); diagnostics.inputsAcknowledged();
     diagnostics.snapshotReceived(snapshot, 100, 180, 3, 220);
     diagnostics.snapshotReceived({ ...snapshot, tick: 1 }, undefined, 200, 1);

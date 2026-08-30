@@ -5,6 +5,7 @@ export interface RandomSource {
   chance(probability: number): boolean;
   pick<T>(items: readonly T[]): T;
   getState(): number;
+  setState(state: number): void;
 }
 
 function hashSeed(seed: number | string): number {
@@ -67,5 +68,17 @@ export class SeededRandom implements RandomSource {
 
   getState(): number {
     return this.state >>> 0;
+  }
+
+  serialize(): string { return (this.state >>> 0).toString(16).padStart(8, "0"); }
+
+  setState(state: number): void {
+    if (!Number.isInteger(state) || state < 0 || state > 0xffffffff) throw new Error("Invalid RNG state");
+    this.state = state >>> 0;
+  }
+
+  static deserialize(serialized: string): SeededRandom {
+    if (!/^[0-9a-fA-F]{8}$/.test(serialized)) throw new Error("Invalid serialized RNG state");
+    const rng = new SeededRandom(1); rng.setState(Number.parseInt(serialized, 16)); return rng;
   }
 }

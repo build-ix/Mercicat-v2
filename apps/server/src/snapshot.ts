@@ -1,4 +1,5 @@
-import type { GameState, NetworkSnapshot } from "@mercicat/shared";
+import type { GameState, NetworkSnapshot, SeededRandom } from "@mercicat/shared";
+
 import { hashGameState } from "@mercicat/simulation";
 
 function canonical(value: unknown): unknown {
@@ -14,8 +15,8 @@ export function snapshotChecksum(snapshot: Omit<NetworkSnapshot, "checksum">): s
   for (let i = 0; i < text.length; i++) { hash ^= text.charCodeAt(i); hash = Math.imul(hash, 16777619) >>> 0; }
   return hash.toString(16).padStart(8, "0");
 }
-export function serializeCanonicalSnapshot(state: GameState, dev = false): NetworkSnapshot {
-  const snapshot: Omit<NetworkSnapshot, "checksum"> = { tick: state.tick, state: structuredClone(state), stateHash: hashGameState(state) };
+export function serializeCanonicalSnapshot(state: GameState, rng: SeededRandom, dev = false): NetworkSnapshot {
+  const snapshot: Omit<NetworkSnapshot, "checksum"> = { tick: state.tick, state: structuredClone(state), stateHash: hashGameState(state), rngState: rng.serialize() };
   return dev ? { ...snapshot, checksum: snapshotChecksum(snapshot) } : snapshot;
 }
 export function verifySnapshot(snapshot: NetworkSnapshot): boolean {

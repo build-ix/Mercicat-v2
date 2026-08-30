@@ -31,12 +31,12 @@ export const EVENTS = {
 export function validateWireInput(input: unknown): WireInput {
   return WireInputSchema.parse(input);
 }
-export function serializeSnapshot(state: GameState, stateHash: string, checksum?: string): SnapshotMessage {
-  return { tick: state.tick, state: structuredClone(state), stateHash, ...(checksum ? { checksum } : {}) };
+export function serializeSnapshot(state: GameState, stateHash: string, rngState: string, checksum?: string): SnapshotMessage {
+  return { tick: state.tick, state: structuredClone(state), stateHash, rngState, ...(checksum ? { checksum } : {}) };
 }
 export function deserializeSnapshot(value: unknown): SnapshotMessage {
   const result = value as SnapshotMessage;
-  if (!result || !Number.isInteger(result.tick) || typeof result.stateHash !== "string" || !result.state) throw new Error("Invalid snapshot");
+  if (!result || !Number.isInteger(result.tick) || typeof result.stateHash !== "string" || typeof result.rngState !== "string" || !result.state) throw new Error("Invalid snapshot");
   return result;
 }
 export type { InputCommand };

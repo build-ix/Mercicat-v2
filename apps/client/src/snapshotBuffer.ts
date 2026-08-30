@@ -10,5 +10,5 @@ export class SnapshotBuffer {
 export function interpolateSnapshots(a: NetworkSnapshot, b: NetworkSnapshot, alpha: number): NetworkSnapshot {
   const t = Math.max(0, Math.min(1, alpha)); const state = structuredClone(a.state);
   for (const id of Object.keys(state.entities)) { const x = state.entities[Number(id)]; const y = b.state.entities[Number(id)]; if (x && y) x.position = { x: x.position.x + (y.position.x - x.position.x) * t, y: x.position.y + (y.position.y - x.position.y) * t }; }
-  return { tick: a.tick, state, stateHash: a.stateHash };
+  return { tick: a.tick, state, stateHash: a.stateHash, rngState: t < 0.5 ? a.rngState : b.rngState };
 }
