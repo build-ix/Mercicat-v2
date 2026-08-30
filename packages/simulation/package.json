@@ -4,7 +4,15 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "test": "echo 'Tests pending'"
+    "test": "node --loader ts-node/esm tests/determinism.test.ts"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@mercicat/shared": "workspace:*",
+    "@mercicat/content": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.6.0"
+  }
 }
