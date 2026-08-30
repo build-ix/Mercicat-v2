@@ -24,9 +24,8 @@ echo.
 REM Check if pnpm is available
 where pnpm >nul 2>nul
 if errorlevel 1 (
-  echo.
   echo Installing pnpm...
-  call npm install -g pnpm
+  npm install -g pnpm
   if errorlevel 1 (
     echo X Failed to install pnpm
     pause
@@ -39,7 +38,7 @@ pnpm --version
 echo.
 
 echo Installing dependencies...
-call pnpm install --frozen-lockfile
+pnpm install --frozen-lockfile
 if errorlevel 1 (
   echo X pnpm install failed
   pause
@@ -48,7 +47,7 @@ if errorlevel 1 (
 
 echo.
 echo Building application...
-call pnpm run dist:win
+pnpm run dist:win
 if errorlevel 1 (
   echo X Build failed
   pause
