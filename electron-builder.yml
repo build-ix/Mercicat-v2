@@ -2,7 +2,7 @@ appId: com.nousresearch.mercicat
 productName: Mercicat v2
 artifactName: mercicat-v2-windows.${ext}
 directories:
-  output: /home/alfr/iPhoneDrop/Mercicat
+  output: release
   buildResources: build
 files:
   - dist-electron/**
