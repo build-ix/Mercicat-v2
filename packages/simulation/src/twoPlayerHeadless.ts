@@ -1,6 +1,6 @@
-import { createInitialState } from "./createInitialState";
-import { step } from "./step";
-import { hashGameState } from "./stateHash";
+import { createInitialState } from "./createInitialState.js";
+import { step } from "./step.js";
+import { hashGameState } from "./stateHash.js";
 import { SeededRandom } from "@mercicat/shared";
 import type { InputCommand } from "@mercicat/shared";
 export function runTwoPlayerDeterminism(seed: number | string = 42, ticks = 120): string[] {

@@ -1,6 +1,6 @@
-import type { NetworkSnapshot } from "./networking";
-import type { GameState } from "./simulation/contracts";
-import { SeededRandom } from "./random/SeededRandom";
+import type { NetworkSnapshot } from "./networking.js";
+import type { GameState } from "./simulation/contracts.js";
+import { SeededRandom } from "./random/SeededRandom.js";
 
 export function serializeRngState(rng: SeededRandom): string { return rng.serialize(); }
 export function deserializeRngState(value: string): SeededRandom { return SeededRandom.deserialize(value); }

@@ -1,6 +1,6 @@
 import { createInitialState, hashGameState, step } from "@mercicat/simulation";
 import { SeededRandom, type GameState, type InputCommand, type PlayerId } from "@mercicat/shared";
-import { PlayerInputBuffer } from "./inputBuffer";
+import { PlayerInputBuffer } from "./inputBuffer.js";
 export interface RoomPlayer { playerId: PlayerId; socketId: string | null; connected: boolean; ready: boolean; disconnectedAt?: number; }
 export class GameRoom {
   readonly players: RoomPlayer[] = []; readonly inputBuffers = new Map<PlayerId, PlayerInputBuffer>(); readonly rng: SeededRandom; state: GameState; private sequence = 0;

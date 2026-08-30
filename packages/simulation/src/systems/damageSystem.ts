@@ -1,5 +1,5 @@
 import { EntityId, GameState, SimulationEvent } from "@mercicat/shared";
-import { DamageRequest } from "./collisionSystem";
+import { DamageRequest } from "./collisionSystem.js";
 
 export function applyDamage(
   state: GameState,

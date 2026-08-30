@@ -3,9 +3,9 @@ import { Server } from "socket.io";
 import { hashGameState } from "@mercicat/simulation";
 import { EVENTS, PROTOCOL_VERSION, validateWireInput } from "@mercicat/protocol";
 import { TICK_RATE } from "@mercicat/shared";
-import { RoomManager } from "./roomManager";
-import { FixedTickLoop } from "./tickLoop";
-import { serializeCanonicalSnapshot } from "./snapshot";
+import { RoomManager } from "./roomManager.js";
+import { FixedTickLoop } from "./tickLoop.js";
+import { serializeCanonicalSnapshot } from "./snapshot.js";
 
 export const rooms = new RoomManager();
 export const io = new Server({ cors: { origin: "*" } });

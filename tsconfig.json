@@ -8,15 +8,13 @@
     "moduleResolution": "bundler",
     "baseUrl": ".",
     "paths": {
-      "@mercicat/shared": ["packages/shared/src/index.ts"],
-      "@mercicat/content": ["packages/content/src/index.ts"],
-      "@mercicat/simulation": ["packages/simulation/src/index.ts"],
-      "@mercicat/protocol": ["packages/protocol/src/index.ts"],
+      "@mercicat/shared": ["packages/shared/dist/index.d.ts"],
+      "@mercicat/content": ["packages/content/dist/index.d.ts"],
+      "@mercicat/simulation": ["packages/simulation/dist/index.d.ts"],
+      "@mercicat/protocol": ["packages/protocol/dist/index.d.ts"],
       "@mercicat/client": ["packages/client/src/index.ts"]
     },
     "resolveJsonModule": true,
-    "allowImportingTsExtensions": true,
-    "noEmit": true,
     "strict": true,
     "esModuleInterop": true
   },

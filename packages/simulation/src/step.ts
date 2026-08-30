@@ -1,11 +1,11 @@
 import { EntityId, GameState, InputCommand, SimulationEvent, SimulationResult, Tick } from "@mercicat/shared";
 import { SeededRandom } from "@mercicat/shared";
-import { hashGameState } from "./stateHash";
-import { updateEntities, finalizeLifecycle } from "./systems/entitySystem";
-import { processCollisions } from "./systems/collisionSystem";
-import { applyDamage } from "./systems/damageSystem";
-import { spawnEnemies } from "./enemies";
-import { updatePlayerRespawns } from "./players";
+import { hashGameState } from "./stateHash.js";
+import { updateEntities, finalizeLifecycle } from "./systems/entitySystem.js";
+import { processCollisions } from "./systems/collisionSystem.js";
+import { applyDamage } from "./systems/damageSystem.js";
+import { spawnEnemies } from "./enemies.js";
+import { updatePlayerRespawns } from "./players.js";
 
 export interface SimulationContext { readonly rng: SeededRandom; }
 

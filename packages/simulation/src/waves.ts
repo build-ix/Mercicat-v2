@@ -1,6 +1,6 @@
 import type { GameState, SimulationEvent } from "@mercicat/shared";
 import { SeededRandom } from "@mercicat/shared";
-import { spawnEnemies } from "./enemies";
+import { spawnEnemies } from "./enemies.js";
 
 export const MAX_WAVES = 5;
 export function enemiesRemaining(state: GameState): number { return Object.values(state.entities).filter(e => e.kind === "enemy" && e.lifecycle === "active").length; }

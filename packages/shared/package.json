@@ -2,7 +2,12 @@
   "name": "@mercicat/shared",
   "version": "0.1.0",
   "type": "module",
-  "main": "src/index.ts",
-  "scripts": {},
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc --outDir dist --declaration"
+  },
   "dependencies": {}
 }

@@ -1,7 +1,7 @@
 import type { SeededRandom, GameState, InputCommand, TICK_RATE } from "@mercicat/shared";
 import { step } from "@mercicat/simulation";
-import { serializeCanonicalSnapshot } from "./snapshot";
-import type { Room } from "./roomManager";
+import { serializeCanonicalSnapshot } from "./snapshot.js";
+import type { Room } from "./roomManager.js";
 
 export interface TickLoopOptions { maxCatchUp?: number; now?: () => number; onSnapshot?: (room: Room, snapshot: ReturnType<typeof serializeCanonicalSnapshot>) => void; }
 export class FixedTickLoop {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SeededRandom } from "@mercicat/shared";
 import { createInitialState, hashGameState, step } from "@mercicat/simulation";
-import { serializeCanonicalSnapshot } from "./snapshot";
+import { serializeCanonicalSnapshot } from "./snapshot.js";
 
 describe("canonical snapshot RNG state", () => {
   it("round-trips RNG state and produces the same subsequent simulation", () => {

@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@mercicat/shared": ["../../packages/shared/dist/index.js"]
+    },
+    "resolveJsonModule": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "declaration": true,
+    "noEmit": false,
+    "esModuleInterop": true
+  },
+  "include": ["src"]
+}

@@ -1,0 +1,5 @@
+{
+  "name": "mercicat-v2",
+  "version": "0.1.0",
+  "main": "electron-main.cjs"
+}

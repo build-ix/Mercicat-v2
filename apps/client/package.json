@@ -2,16 +2,16 @@
   "name": "mercicat-client",
   "version": "0.1.0",
   "type": "module",
-  "main": "src/main.ts",
+  "main": "dist/index.js",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -p ../../tsconfig.json --noEmit && vite build",
-    "preview": "vite preview"
+    "build": "tsc -p ../../tsconfig.json --noEmit && vite build"
   },
   "dependencies": {
     "@mercicat/content": "workspace:*",
     "@mercicat/protocol": "workspace:*",
     "@mercicat/shared": "workspace:*",
+    "@mercicat/simulation": "workspace:*",
     "socket.io-client": "^4.7.0",
     "three": "^0.128.0"
   },

@@ -1,6 +1,6 @@
 import { createInitialState } from "@mercicat/simulation";
 import { SeededRandom, MAX_PLAYERS, PlayerSlot, PlayerId } from "@mercicat/shared";
-import { PlayerInputBuffer } from "./inputBuffer";
+import { PlayerInputBuffer } from "./inputBuffer.js";
 
 export class Room {
   readonly slots = new Map<PlayerId, PlayerSlot>();

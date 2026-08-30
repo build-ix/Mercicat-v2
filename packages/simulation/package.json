@@ -2,8 +2,12 @@
   "name": "@mercicat/simulation",
   "version": "0.1.0",
   "type": "module",
-  "main": "src/index.ts",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js"
+  },
   "scripts": {
+    "build": "tsc --outDir dist --declaration",
     "test": "vitest --run"
   },
   "dependencies": {

@@ -1,7 +1,7 @@
 import { type Server as HttpServer } from "node:http";
 import { Server } from "socket.io";
 import { EVENTS, PROTOCOL_VERSION, validatePlayerInput } from "@mercicat/protocol";
-import { GameRoom } from "./gameRoom";
+import { GameRoom } from "./gameRoom.js";
 
 export function createGameServer(httpServer?: HttpServer) {
   const io = new Server(httpServer, { cors: { origin: "*" } });

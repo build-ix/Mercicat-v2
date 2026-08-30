@@ -1,3 +1,3 @@
-export * from "./networkProtocol";
-export * from "./networkSimulation";
-export * from "./gameMessages";
+export * from "./networkProtocol.js";
+export * from "./networkSimulation.js";
+export * from "./gameMessages.js";

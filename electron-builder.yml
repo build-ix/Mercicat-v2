@@ -1,0 +1,22 @@
+appId: com.nousresearch.mercicat
+productName: Mercicat v2
+artifactName: mercicat-v2-windows.${ext}
+directories:
+  output: /home/alfr/iPhoneDrop/Mercicat
+  buildResources: build
+files:
+  - dist-electron/**
+  - apps/client/dist/**
+  - package.json
+asar: true
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  artifactName: mercicat-v2-windows.${ext}
+nsis:
+  oneClick: true
+  perMachine: false
+  createDesktopShortcut: true
+  runAfterFinish: false
