@@ -1,8 +1,10 @@
 import type { NetworkSnapshot, Tick } from "@mercicat/shared";
 export class SnapshotBuffer {
   private snapshots: NetworkSnapshot[] = [];
-  constructor(private readonly maxSize = 32) {}
-  push(snapshot: NetworkSnapshot): boolean { if (this.snapshots.some((s) => s.tick === snapshot.tick) || (this.snapshots.length && snapshot.tick < this.snapshots[0].tick)) return false; this.snapshots.push(snapshot); this.snapshots.sort((a, b) => a.tick - b.tick); while (this.snapshots.length > this.maxSize) this.snapshots.shift(); return true; }
+  lastAppliedTick = -1;
+  constructor(private readonly maxSize = 60) {}
+  push(snapshot: NetworkSnapshot): boolean { if (snapshot.tick <= this.lastAppliedTick || this.snapshots.some((s) => s.tick === snapshot.tick)) return false; const latest = this.latest(); if (latest && snapshot.tick < latest.tick) return false; if (latest && snapshot.tick - latest.tick > 2) console.warn(`Snapshot gap: ${latest.tick} -> ${snapshot.tick}`); this.snapshots.push(snapshot); while (this.snapshots.length > this.maxSize) this.snapshots.shift(); return true; }
+  applyLatest(): NetworkSnapshot | undefined { const latest = this.latest(); if (latest) this.lastAppliedTick = latest.tick; return latest; }
   bracket(tick: number): readonly [NetworkSnapshot, NetworkSnapshot] | null { let lo: NetworkSnapshot | undefined; let hi: NetworkSnapshot | undefined; for (const s of this.snapshots) { if (s.tick <= tick) lo = s; if (s.tick >= tick) { hi = s; break; } } return lo && hi ? [lo, hi] : null; }
   latest(): NetworkSnapshot | undefined { return this.snapshots[this.snapshots.length - 1]; }
   get size(): number { return this.snapshots.length; }

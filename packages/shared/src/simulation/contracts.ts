@@ -33,6 +33,8 @@ export interface PlayerEntity extends BaseEntity {
   readonly kind: "player";
   playerId: PlayerId;
   fireCooldownTicks: number;
+  deadSinceTick?: Tick;
+  respawnCount?: number;
 }
 
 export interface EnemyEntity extends BaseEntity {

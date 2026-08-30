@@ -31,8 +31,8 @@ export const EVENTS = {
 export function validateWireInput(input: unknown): WireInput {
   return WireInputSchema.parse(input);
 }
-export function serializeSnapshot(state: GameState, stateHash: string, rngState: string, checksum?: string): SnapshotMessage {
-  return { tick: state.tick, state: structuredClone(state), stateHash, rngState, ...(checksum ? { checksum } : {}) };
+export function serializeSnapshot(state: GameState, stateHash: string, rngState: string, checksum?: string, acknowledgedThrough = -1): SnapshotMessage & { acknowledgedThrough: number } {
+  return { tick: state.tick, state: structuredClone(state), stateHash, rngState, acknowledgedThrough, ...(checksum ? { checksum } : {}) };
 }
 export function deserializeSnapshot(value: unknown): SnapshotMessage {
   const result = value as SnapshotMessage;

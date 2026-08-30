@@ -10,3 +10,4 @@ export * from "./systems/damageSystem";
 export * from "./enemies";
 export * from "./collision";
 export * from "./waves";
+export * from "./players";

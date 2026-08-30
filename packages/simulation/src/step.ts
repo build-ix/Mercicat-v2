@@ -5,6 +5,7 @@ import { updateEntities, finalizeLifecycle } from "./systems/entitySystem";
 import { processCollisions } from "./systems/collisionSystem";
 import { applyDamage } from "./systems/damageSystem";
 import { spawnEnemies } from "./enemies";
+import { updatePlayerRespawns } from "./players";
 
 export interface SimulationContext { readonly rng: SeededRandom; }
 
@@ -17,12 +18,10 @@ export function step(previous: GameState, commands: readonly InputCommand[], con
   if (state.wave.spawnedForWave === 0 && !state.wave.waveComplete) spawnEnemies(state, context.rng, state.wave.currentWave, events);
   updateEntities(state, context.rng, events);
   applyDamage(state, processCollisions(state), events);
+  updatePlayerRespawns(state, context.rng, events);
   finalizeLifecycle(state, events);
   updateWaveState(state, context.rng, events);
-  if (Object.values(state.entities).some((e) => e.kind === "player" && e.health <= 0)) {
-    state.phase = "defeat";
-    events.push({ type: "matchDefeated", tick: state.tick, wave: state.wave.currentWave });
-  }
+
   state.tick += 1;
   return { state, events, stateHash: hashGameState(state) };
 }
