@@ -26,7 +26,20 @@ async function createWindow() {
     webPreferences: { contextIsolation: true, sandbox: true },
   });
 
-  const indexPath = path.join(__dirname, "..", "apps", "client", "dist", "index.html");
+  // In production (packaged), assets are in resources/app.asar/apps/client/dist
+  // In development, assets are relative to dist-electron
+  const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
+  let indexPath;
+
+  if (isDev) {
+    // Development: relative path
+    indexPath = path.join(__dirname, "..", "apps", "client", "dist", "index.html");
+  } else {
+    // Production (packaged): use resources path
+    indexPath = path.join(process.resourcesPath, "app.asar", "apps", "client", "dist", "index.html");
+  }
+
+  console.log("Loading index.html from:", indexPath);
   await window.loadFile(indexPath);
   window.once("ready-to-show", () => window.show());
 }
