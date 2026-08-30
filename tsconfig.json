@@ -17,8 +17,7 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
     "strict": true,
-    "esModuleInterop": true,
-    "noImplicitAny": true
+    "esModuleInterop": true
   },
   "include": ["apps", "packages"],
   "exclude": ["node_modules", "dist"]
