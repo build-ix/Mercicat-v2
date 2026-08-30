@@ -8,7 +8,9 @@
     "build": "tsc"
   },
   "dependencies": {
+    "@mercicat/content": "workspace:*",
     "@mercicat/protocol": "workspace:*",
+    "@mercicat/shared": "workspace:*",
     "@mercicat/simulation": "workspace:*",
     "socket.io": "^4.7.0"
   },

@@ -9,8 +9,9 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mercicat/content": "workspace:*",
     "@mercicat/protocol": "workspace:*",
-    "@mercicat/simulation": "workspace:*",
+    "@mercicat/shared": "workspace:*",
     "socket.io-client": "^4.7.0",
     "three": "^r128"
   },

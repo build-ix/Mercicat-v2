@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mercicat</title>
+    <title>Mercicat Vertical Slice</title>
     <style>
       * {
         margin: 0;
@@ -13,7 +13,7 @@
       body {
         background: #1a1a1e;
         color: #e0e0e0;
-        font-family: Arial, sans-serif;
+        font-family: monospace;
         overflow: hidden;
       }
       #canvas {
@@ -25,24 +25,90 @@
         position: absolute;
         top: 16px;
         left: 16px;
-        background: rgba(0, 0, 0, 0.7);
+        background: rgba(0, 0, 0, 0.8);
         padding: 16px;
         border-radius: 8px;
-        font-size: 14px;
-        font-family: monospace;
+        border: 1px solid #505050;
+        font-size: 12px;
+        line-height: 1.6;
+        width: 280px;
+        z-index: 10;
       }
       .stat {
-        margin: 8px 0;
+        display: flex;
+        justify-content: space-between;
+        padding: 4px 0;
+      }
+      .label {
+        color: #a0a0a0;
+      }
+      .value {
+        color: #00ff00;
+        font-weight: bold;
+      }
+      #status {
+        color: #ffff00;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid #404040;
+      }
+      #help {
+        position: absolute;
+        bottom: 16px;
+        left: 16px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 12px;
+        border-radius: 8px;
+        border: 1px solid #505050;
+        font-size: 11px;
+        width: 280px;
+      }
+      .help-row {
+        margin: 4px 0;
+        color: #a0a0a0;
+      }
+      .help-key {
+        color: #00ff00;
+        font-weight: bold;
       }
     </style>
   </head>
   <body>
     <canvas id="canvas"></canvas>
     <div id="ui">
-      <div class="stat">FPS: <span id="fps">60</span></div>
-      <div class="stat">Tick: <span id="tick">0</span></div>
-      <div class="stat">Players: <span id="players">0</span></div>
-      <div class="stat" id="status">Connecting...</div>
+      <div style="color: #ff8040; font-weight: bold; margin-bottom: 8px;">MERCICAT VERTICAL SLICE</div>
+      <div class="stat">
+        <span class="label">Status:</span>
+        <span id="status" class="value">Connecting...</span>
+      </div>
+      <div class="stat">
+        <span class="label">Tick:</span>
+        <span id="tick" class="value">0</span>
+      </div>
+      <div class="stat">
+        <span class="label">FPS:</span>
+        <span id="fps" class="value">60</span>
+      </div>
+      <div class="stat">
+        <span class="label">Wave:</span>
+        <span id="wave" class="value">1</span>
+      </div>
+      <div class="stat">
+        <span class="label">Players:</span>
+        <span id="players" class="value">0</span>
+      </div>
+      <div class="stat">
+        <span class="label">Enemies:</span>
+        <span id="enemies" class="value">0</span>
+      </div>
+    </div>
+    <div id="help">
+      <div style="color: #ff8040; font-weight: bold; margin-bottom: 6px;">CONTROLS</div>
+      <div class="help-row"><span class="help-key">WASD</span> Move</div>
+      <div class="help-row"><span class="help-key">MOUSE</span> Aim & Attack</div>
+      <div class="help-row" style="margin-top: 8px; color: #4080f0;">■ Blue = You</div>
+      <div class="help-row" style="color: #ff6040;">■ Red = Enemies</div>
+      <div class="help-row" style="color: #ffff00;">○ Yellow = Projectiles</div>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>
