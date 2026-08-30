@@ -21,7 +21,7 @@ await cp(
 console.log("🔨 Bundling server with Vite...");
 try {
   execSync(
-    `node_modules/.bin/vite build --config apps/client/vite.server.config.mjs`,
+    `npx vite build --config apps/client/vite.server.config.mjs`,
     {
       cwd: root,
       stdio: "inherit",
