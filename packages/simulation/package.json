@@ -4,7 +4,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "test": "node --loader ts-node/esm tests/determinism.test.ts"
+    "test": "vitest"
   },
   "dependencies": {
     "@mercicat/shared": "workspace:*",
@@ -12,7 +12,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
-    "ts-node": "^10.9.0",
-    "typescript": "^5.6.0"
+    "typescript": "^5.6.0",
+    "vitest": "^1.0.0"
   }
 }
