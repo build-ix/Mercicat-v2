@@ -38,7 +38,7 @@ Write-Host "+ pnpm found"
 Write-Host ""
 
 Write-Host "Installing dependencies..."
-& pnpm install --frozen-lockfile
+& pnpm install --shamefully-hoist
 if ($LASTEXITCODE -ne 0) {
     Write-Host "X pnpm install failed"
     Read-Host "Press Enter to exit"
