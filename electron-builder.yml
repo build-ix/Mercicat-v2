@@ -11,12 +11,7 @@ files:
 asar: true
 win:
   target:
-    - target: nsis
+    - target: portable
       arch:
         - x64
   artifactName: mercicat-v2-windows.${ext}
-nsis:
-  oneClick: true
-  perMachine: false
-  createDesktopShortcut: true
-  runAfterFinish: false
