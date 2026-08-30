@@ -8,9 +8,11 @@
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r run build",
     "test": "pnpm -r run test",
-    "lint": "pnpm -r run lint"
+    "lint": "pnpm -r run lint",
+    "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
+    "@types/three": "^0.185.4",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "eslint": "^9.0.0",

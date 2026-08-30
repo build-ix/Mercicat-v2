@@ -1,144 +1,32 @@
-// Determinism tests — verifies same input always produces same state
-import {
-  createGameWorld,
-  stepSimulation,
-  PlayerState,
-  GameWorld,
-  PlayerInput,
-} from "../src/index.js";
-import { createDefaultRegistry } from "@mercicat/content";
-import { brandPlayerId } from "@mercicat/shared";
+import { GameState, InputCommand } from "@mercicat/shared";
+import { SeededRandom } from "@mercicat/shared";
+import { createInitialState } from "../src/createInitialState.js";
+import { hashGameState } from "../src/stateHash.js";
+import { step } from "../src/step.js";
+import { describe, expect, it } from "vitest";
 
-function serializeWorldState(world: GameWorld): string {
-  const snapshot = {
-    tick: world.tick,
-    players: Array.from(world.players.values()).map((p) => ({
-      id: p.id,
-      pos: { x: Math.round(p.position.x * 100) / 100, y: Math.round(p.position.y * 100) / 100 },
-      health: p.health,
-      alive: p.alive,
-    })),
-    enemies: Array.from(world.enemies.values()).map((e) => ({
-      id: e.id,
-      pos: { x: Math.round(e.position.x * 100) / 100, y: Math.round(e.position.y * 100) / 100 },
-      health: e.health,
-      alive: e.alive,
-    })),
-    projectiles: world.projectiles.size,
-    wave: world.waveNumber,
-  };
-  return JSON.stringify(snapshot);
-}
-
-console.log("Testing deterministic simulation...\n");
-
-// Test 1: Same seed, same inputs = same state
-console.log("Test 1: Determinism with fixed inputs");
-const seed = 12345;
-const content = createDefaultRegistry();
-
-const world1 = createGameWorld(seed);
-const playerId = brandPlayerId("test_player");
-world1.players.set(playerId, {
-  id: playerId,
-  position: { x: 960, y: 640 },
-  velocity: { x: 0, y: 0 },
-  health: 100,
-  maxHealth: 100,
-  character: "player_cat",
-  attackCooldown: 0,
-  lastAttackDirection: { x: 1, y: 0 },
-  alive: true,
-});
-
-const world2 = createGameWorld(seed);
-world2.players.set(playerId, {
-  id: playerId,
-  position: { x: 960, y: 640 },
-  velocity: { x: 0, y: 0 },
-  health: 100,
-  maxHealth: 100,
-  character: "player_cat",
-  attackCooldown: 0,
-  lastAttackDirection: { x: 1, y: 0 },
-  alive: true,
-});
-
-const inputs: PlayerInput[] = [
-  { playerId, moveDirection: { x: 1, y: 0 }, attackDirection: { x: 1, y: 0 } },
-];
-
-for (let i = 0; i < 30; i++) {
-  stepSimulation(world1, inputs, content);
-  stepSimulation(world2, inputs, content);
-}
-
-const state1 = serializeWorldState(world1);
-const state2 = serializeWorldState(world2);
-
-if (state1 === state2) {
-  console.log("✓ PASS: Determinism verified");
-} else {
-  console.log("✗ FAIL: States diverged");
-  console.log("World 1:", state1);
-  console.log("World 2:", state2);
-}
-
-// Test 2: Different inputs = different states
-console.log("\nTest 2: Different inputs produce different states");
-const world3 = createGameWorld(seed);
-world3.players.set(playerId, {
-  id: playerId,
-  position: { x: 960, y: 640 },
-  velocity: { x: 0, y: 0 },
-  health: 100,
-  maxHealth: 100,
-  character: "player_cat",
-  attackCooldown: 0,
-  lastAttackDirection: { x: 1, y: 0 },
-  alive: true,
-});
-
-const inputs2: PlayerInput[] = [
-  { playerId, moveDirection: { x: 0, y: 1 }, attackDirection: { x: 0, y: 0 } },
-];
-
-for (let i = 0; i < 30; i++) {
-  stepSimulation(world3, inputs2, content);
-}
-
-const state3 = serializeWorldState(world3);
-
-if (state1 !== state3) {
-  console.log("✓ PASS: Different inputs diverged");
-} else {
-  console.log("✗ FAIL: States were identical despite different inputs");
-}
-
-// Test 3: Wave spawning
-console.log("\nTest 3: Wave spawning");
-const world4 = createGameWorld(seed);
-world4.players.set(playerId, {
-  id: playerId,
-  position: { x: 960, y: 640 },
-  velocity: { x: 0, y: 0 },
-  health: 100,
-  maxHealth: 100,
-  character: "player_cat",
-  attackCooldown: 0,
-  lastAttackDirection: { x: 1, y: 0 },
-  alive: true,
-});
-
-let enemiesTot = 0;
-for (let i = 0; i < 180; i++) {
-  // 6 seconds at 30Hz
-  const result = stepSimulation(world4, inputs, content);
-  for (const event of result.events) {
-    if (event.type === "enemy_spawned") enemiesTot++;
+function run(seed: number | string, ticks: number): string[] {
+  let state = createInitialState(seed, [1]);
+  const rng = new SeededRandom(seed);
+  const hashes: string[] = [];
+  for (let tick = 0; tick < ticks; tick += 1) {
+    const commands: InputCommand[] = tick % 10 === 0 ? [{ type: "move", tick, playerId: 1, direction: { x: 1, y: 0 } }] : [];
+    const result = step(state, commands, { rng });
+    state = result.state; hashes.push(result.stateHash);
   }
+  return hashes;
 }
 
-console.log(`✓ Spawned ${enemiesTot} enemies in 6 seconds (${world4.enemies.size} alive)`);
-
-console.log("\nAll tests completed!");
+describe("deterministic simulation", () => {
+  it("produces identical canonical hashes for 120 ticks", () => {
+    expect(run("week-1", 120)).toEqual(run("week-1", 120));
+  });
+  it("changes when the seed changes", () => {
+    expect(run("week-1", 120)[119]).not.toBe(run("week-1-other", 120)[119]);
+  });
+  it("hashes canonical state independent of object insertion order", () => {
+    const state = createInitialState(1, [1, 2]);
+    const reversed = { ...state, entities: Object.fromEntries(Object.entries(state.entities).reverse()) };
+    expect(hashGameState(state)).toBe(hashGameState(reversed));
+  });
+});

@@ -4,7 +4,7 @@
   "type": "module",
   "main": "src/index.ts",
   "scripts": {
-    "test": "vitest"
+    "test": "vitest --run"
   },
   "dependencies": {
     "@mercicat/shared": "workspace:*",

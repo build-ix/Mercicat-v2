@@ -6,6 +6,13 @@
     "module": "ESNext",
     "skipLibCheck": true,
     "moduleResolution": "bundler",
+    "baseUrl": ".",
+    "paths": {
+      "@mercicat/shared": ["packages/shared/src/index.ts"],
+      "@mercicat/content": ["packages/content/src/index.ts"],
+      "@mercicat/simulation": ["packages/simulation/src/index.ts"],
+      "@mercicat/protocol": ["packages/protocol/src/index.ts"]
+    },
     "resolveJsonModule": true,
     "allowImportingTsExtensions": true,
     "noEmit": true,
