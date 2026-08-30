@@ -1,84 +1,107 @@
-# Mercicat v2 — Vertical Slice
+# Mercicat v2 — One-Click Windows Build
 
-A deterministic, server-authoritative multiplayer arena game built with TypeScript, Three.js, Node.js, and Socket.IO.
+## For Windows PC Users
 
-## Stack
+### Download & Run
 
-- **Language:** TypeScript (monorepo)
-- **Rendering:** Three.js (WebGL, orthographic camera)
-- **Networking:** Socket.IO (30 Hz server ticks)
-- **Build:** Vite (client), ts-node (server)
-- **Package Manager:** pnpm (monorepo workspaces)
+1. **Clone the repo:**
+   ```cmd
+   git clone https://github.com/build-ix/Mercicat-v2.git
+   cd Mercicat-v2
+   ```
 
-## Project Structure
+2. **Run the build:**
+   ```cmd
+   build-windows.cmd
+   ```
+
+That's it. The script will:
+- Verify Node.js is installed (install if needed)
+- Install pnpm
+- Download dependencies
+- Compile TypeScript
+- Bundle the app
+- Generate the Windows installer at `iPhoneDrop\Mercicat\mercicat-v2-windows.exe`
+
+The installer is ready to distribute or install locally.
+
+---
+
+## Architecture
+
+**Stack:**
+- **Frontend:** Three.js + Vite + TypeScript
+- **Backend:** Node.js + Socket.IO + Deterministic Simulation
+- **Packaging:** Electron + NSIS
+
+**Build Pipeline:**
+```
+pnpm run build              # TypeScript compilation (--sort respects dependencies)
+pnpm run package:electron   # Bundles server into dist-electron/
+pnpm run dist:win          # Electron Builder → Windows NSIS installer
+```
+
+**Output:** `/iPhoneDrop/Mercicat/mercicat-v2-windows.exe` (standalone installer)
+
+---
+
+## Development
+
+### Local dev (GMKtec):
+```bash
+pnpm dev          # Runs all packages in parallel (Vite + Node with ts-node)
+```
+
+### Build (Linux):
+```bash
+pnpm run build        # Compiles all TypeScript packages
+```
+
+### Full Windows build (Linux for testing):
+```bash
+pnpm run dist:win     # Builds everything + packages NSIS
+```
+(Wine signing will fail on Linux; succeeds on Windows.)
+
+---
+
+## Monorepo Structure
 
 ```
 packages/
-  shared/          # Branded types, vectors, RNG, constants
-  content/         # Character/enemy/attack/wave definitions
-  simulation/      # Deterministic game rules (no I/O)
-  protocol/        # Network message schemas (Zod)
+  shared/         # Shared types, RNG, serialization
+  protocol/       # Network messages (Zod schemas)
+  simulation/     # Deterministic game engine
+  content/        # Game assets, metadata
 
 apps/
-  server/          # Node.js + Socket.IO authoritative server
-  client/          # Vite + Three.js browser client
+  client/         # Three.js Electron renderer
+  server/         # Node.js game server
 ```
 
-## What Works
+All TypeScript packages compile to `dist/` with declarations. The root `build` script respects dependency order via `pnpm -r --sort`.
 
-✓ Deterministic simulation (player movement, enemy AI, projectiles, waves)
-✓ Authoritative server at 30 Hz
-✓ Client receives snapshots and renders them
-✓ WASD movement, mouse aim/attack
-✓ Enemy spawning and wave progression
-✓ Collision detection and damage
-✓ Multiplayer networking
+---
 
-## What's Placeholder
+## Troubleshooting
 
-- 3D models (using colored boxes; Higgsfield models pending)
-- UI (monospace debug overlay; final design pending)
-- Visual effects (basic; particle/animation systems pending)
-- Audio (none yet)
-- Menus and progression screens (pending game mode design)
+**"pnpm not found"**
+- `build-windows.cmd` installs it automatically via `npm install -g pnpm`
 
-## Game Modes (Planned)
+**"Node.js not found"**
+- Install from https://nodejs.org/ or the script will guide you
 
-1. **Endless Waves** — survive infinite waves, score-based, Brotato-inspired
-2. **Adventure** — (design in progress) maze-like progression with combat and exploration
+**"Build failed"**
+- Run `pnpm install --frozen-lockfile` to verify dependencies
+- Check Node version: should be 18+
+- Delete `node_modules` and `.pnpm-store` if stuck, then retry
 
-## Getting Started
+**"Installer won't run"**
+- Windows Defender may block unsigned .exe; add exception or sign with a cert
+- Try running as Administrator
 
-```bash
-git clone https://github.com/build-ix/Mercicat-v2.git
-cd Mercicat-v2
-pnpm install
-pnpm run dev
-```
+---
 
-Server: http://localhost:3001 (Socket.IO)
-Client: http://localhost:5173 (Vite dev server)
+## Credits
 
-## Controls
-
-- **WASD** — move
-- **Mouse** — aim & attack
-- Center of screen = reference point for aim direction
-
-## Next Steps
-
-1. Test vertical slice locally (verify gameplay loop works)
-2. Generate character models (Higgsfield integration)
-3. Implement game mode selection and progression
-4. Build adventure mode design
-5. Polish UI and visual design
-
-## Architecture Notes
-
-- **Simulation is pure:** no I/O, no dependencies on rendering or networking
-- **Server is authoritative:** clients predict presentation but can't affect game state
-- **Content is data-driven:** new enemies/weapons are defined in JSON-like objects, not code
-- **Rendering is replaceable:** models can swap without changing gameplay
-- **Tests verify determinism:** same seed + same inputs = identical state
-
-See individual package READMEs for details.
+Built with DeepSeek + Fable 5. Deterministic simulation architecture from Fable.
