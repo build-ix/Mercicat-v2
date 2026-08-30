@@ -8,7 +8,7 @@
     "dev": "pnpm -r --parallel run dev",
     "build": "pnpm -r --sort run build",
     "package:electron": "node scripts/build-electron.mjs",
-    "dist:win": "pnpm build && pnpm package:electron && electron-builder --config electron-builder.yml --win nsis --x64",
+    "dist:win": "pnpm build && pnpm package:electron && electron-builder --config electron-builder.yml --win --x64",
     "test": "pnpm -r run test",
     "lint": "pnpm -r run lint",
     "typecheck": "tsc --noEmit"
