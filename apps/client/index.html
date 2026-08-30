@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mercicat</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background: #1a1a1e;
+        color: #e0e0e0;
+        font-family: Arial, sans-serif;
+        overflow: hidden;
+      }
+      #canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+      }
+      #ui {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        background: rgba(0, 0, 0, 0.7);
+        padding: 16px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-family: monospace;
+      }
+      .stat {
+        margin: 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="canvas"></canvas>
+    <div id="ui">
+      <div class="stat">FPS: <span id="fps">60</span></div>
+      <div class="stat">Tick: <span id="tick">0</span></div>
+      <div class="stat">Players: <span id="players">0</span></div>
+      <div class="stat" id="status">Connecting...</div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
