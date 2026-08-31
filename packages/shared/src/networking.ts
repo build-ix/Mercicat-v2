@@ -31,6 +31,8 @@ export interface NetworkSnapshot {
   /** Canonical eight-digit hexadecimal state of the server simulation RNG. */
   readonly rngState: string;
   readonly checksum?: string;
+  /** Highest client input sequence accepted by the server for this player. */
+  readonly acknowledgedThrough?: number;
 }
 
 export interface Diagnostics {

@@ -1,8 +1,8 @@
 import * as THREE from "three";
 import { TICK_RATE } from "@mercicat/shared";
-import type { InputCommand } from "@mercicat/shared";
+import type { GameState, InputCommand } from "@mercicat/shared";
 import { GameRenderer, gameStateToRender } from "@mercicat/client";
-import { LocalSession } from "./session";
+import { NetworkSession } from "./networkSession";
 
 const LOCAL_PLAYER_ID = 1;
 const SEED = 12345;
@@ -21,12 +21,19 @@ scene.add(directionalLight);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: 0x2a2a30 }));
 scene.add(ground);
 
-const session = new LocalSession(SEED, [LOCAL_PLAYER_ID]);
+const session = new NetworkSession({
+  url: `http://${window.location.hostname}:3001`,
+  roomId: new URLSearchParams(window.location.search).get("room") ?? "default",
+  onStatus: (value) => { status.textContent = value === "joined" ? "Playing" : value; },
+  onError: (error) => console.warn("Network protocol error", error)
+});
+session.connect();
 const gameRenderer = new GameRenderer(scene);
 const keys = new Set<string>();
 let mouseWorldPos = { x: 0, y: 0 };
 let fireRequested = false;
 let fps = 0;
+let currentState: GameState | null = null;
 
 const status = document.getElementById("status")!;
 const tickValue = document.getElementById("tick")!;
@@ -66,12 +73,13 @@ function sampleInput(): InputCommand[] {
   const length = Math.hypot(dx, dy);
   // Always send a movement state sample, including zero, so key release is
   // represented explicitly at the simulation tick.
-  commands.push({ type: "move", tick: session.state.tick, playerId: LOCAL_PLAYER_ID, direction: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 } });
+  const playerId = session.playerId ?? LOCAL_PLAYER_ID;
+  commands.push({ type: "move", tick: currentState!.tick, playerId, direction: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 } });
   if (fireRequested) {
-    const player = session.state.entities[session.state.players[LOCAL_PLAYER_ID]];
+    const player = currentState!.entities[currentState!.players[playerId]];
     if (player?.kind === "player") {
       const angle = Math.atan2(mouseWorldPos.y - player.position.y, mouseWorldPos.x - player.position.x);
-      commands.push({ type: "fire", tick: session.state.tick, playerId: LOCAL_PLAYER_ID, direction: { x: Math.cos(angle), y: Math.sin(angle) } });
+      commands.push({ type: "fire", tick: currentState!.tick, playerId, direction: { x: Math.cos(angle), y: Math.sin(angle) } });
     }
   }
   fireRequested = false;
@@ -80,12 +88,12 @@ function sampleInput(): InputCommand[] {
 
 function updateHud(context: ReturnType<typeof gameStateToRender>): void {
   const health = context.localPlayer?.health ?? 0;
-  tickValue.textContent = String(session.state.tick);
+  tickValue.textContent = String(currentState!.tick);
   status.textContent = context.hud.phase === "playing" ? "Playing" : context.hud.phase;
   status.style.color = context.hud.phase === "playing" ? "#00ff00" : "#ff8080";
   fpsValue.textContent = String(Math.round(fps));
   waveValue.textContent = String(context.hud.wave);
-  playersValue.textContent = context.localPlayer ? "1" : "0";
+  playersValue.textContent = String(Object.keys(currentState?.players ?? {}).length);
   enemiesValue.textContent = String(context.hud.enemiesRemaining);
   healthValue.textContent = `${Math.ceil(health)} / 100`;
   scoreValue.textContent = String(context.hud.score);
@@ -133,14 +141,21 @@ function frame(now: number): void {
   const instantFps = delta > 0 ? 1000 / delta : 0;
   fps = fps === 0 ? instantFps : fps * 0.9 + instantFps * 0.1;
   accumulator += delta;
+  currentState = session.state;
+  if (!currentState) {
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+    return;
+  }
   while (accumulator >= tickDuration) {
     session.step(sampleInput());
     accumulator -= tickDuration;
   }
-  const context = gameStateToRender(session.state, LOCAL_PLAYER_ID);
+  const localPlayerId = session.playerId ?? LOCAL_PLAYER_ID;
+  const context = gameStateToRender(currentState, localPlayerId);
   gameRenderer.render(context);
   updateHud(context);
-  const player = session.state.entities[session.state.players[LOCAL_PLAYER_ID]];
+  const player = currentState.entities[currentState.players[localPlayerId]];
   if (player?.kind === "player") {
     camera.position.x = player.position.x;
     camera.position.y = player.position.y;

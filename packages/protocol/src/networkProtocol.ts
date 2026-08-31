@@ -40,6 +40,20 @@ export function deserializeSnapshot(value: unknown): SnapshotMessage {
   if (!result || !Number.isInteger(result.tick) || result.tick < 0 || typeof result.stateHash !== "string" || !/^[0-9a-f]{16}$/.test(result.stateHash) || typeof result.rngState !== "string" || !/^[0-9a-f]{8}$/.test(result.rngState) || !result.state || typeof result.state !== "object" || result.state.tick !== result.tick || !Number.isInteger(result.state.nextEntityId) || !result.state.entities || !result.state.players) throw new Error("Invalid snapshot");
   if (result.checksum !== undefined && !/^[0-9a-f]{8}$/.test(result.checksum)) throw new Error("Invalid snapshot checksum");
   if (result.stateHash !== hashGameState(result.state)) throw new Error("Snapshot state hash mismatch");
+  if (result.acknowledgedThrough !== undefined && (!Number.isInteger(result.acknowledgedThrough) || result.acknowledgedThrough < -1)) throw new Error("Invalid snapshot acknowledgment");
+  if (result.checksum && result.checksum !== checksumForSnapshot(result)) throw new Error("Snapshot checksum mismatch");
   return result;
+}
+function canonical(value: unknown): unknown {
+  if (typeof value === "number") return Number(value.toFixed(6));
+  if (Array.isArray(value)) return value.map(canonical);
+  if (value && typeof value === "object") return Object.keys(value as object).sort().filter((key) => key !== "acknowledgedThrough").reduce<Record<string, unknown>>((out, key) => { out[key] = canonical((value as Record<string, unknown>)[key]); return out; }, {});
+  return value;
+}
+function checksumForSnapshot(snapshot: SnapshotMessage): string {
+  const value = { tick: snapshot.tick, state: snapshot.state, stateHash: snapshot.stateHash, rngState: snapshot.rngState };
+  const text = JSON.stringify(canonical(value)); let hash = 2166136261;
+  for (let i = 0; i < text.length; i += 1) { hash ^= text.charCodeAt(i); hash = Math.imul(hash, 16777619) >>> 0; }
+  return hash.toString(16).padStart(8, "0");
 }
 export type { InputCommand };
