@@ -8,6 +8,7 @@ export class InputHistory {
   record(tick: Tick, command: InputCommand): SequencedInput { const value = Object.freeze({ sequence: this.nextSequence++, tick, command: structuredClone(command) }); this.records.push(value); while (this.records.length > this.maxSize) this.records.shift(); return value; }
   unacknowledged(afterSequence: number): readonly SequencedInput[] { return this.records.filter((r) => r.sequence > afterSequence); }
   acknowledge(sequence: number): void { while (this.records.length && this.records[0].sequence <= sequence) this.records.shift(); }
+  clear(): void { this.records.length = 0; this.nextSequence = 0; }
   get size(): number { return this.records.length; }
 }
 export class LocalPrediction {

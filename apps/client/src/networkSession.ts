@@ -1,16 +1,51 @@
 import { io, type Socket } from "socket.io-client";
-import type { GameState, InputCommand, NetworkSnapshot, PlayerId } from "@mercicat/shared";
+import type { GameState, InputCommand, NetworkSnapshot, PlayerId, SequencedInput } from "@mercicat/shared";
+import { SeededRandom, TICK_MS } from "@mercicat/shared";
 import { EVENTS, PROTOCOL_VERSION, deserializeSnapshot } from "@mercicat/protocol";
+import { step } from "@mercicat/simulation";
 import { InputHistory } from "./prediction";
-import { SnapshotBuffer } from "./snapshotBuffer";
+import { SnapshotBuffer, interpolateSnapshots } from "./snapshotBuffer";
 
-export interface NetworkSessionOptions { url: string; roomId: string; onSnapshot?: (snapshot: NetworkSnapshot) => void; onStatus?: (status: NetworkSessionStatus) => void; onError?: (message: unknown) => void; }
+export interface NetworkSessionOptions {
+  url: string; roomId: string;
+  onSnapshot?: (snapshot: NetworkSnapshot) => void;
+  onStatus?: (status: NetworkSessionStatus) => void;
+  onError?: (message: unknown) => void;
+  /** Number of server ticks to render behind the newest snapshot. */
+  interpolationDelayTicks?: number;
+}
 export type NetworkSessionStatus = "disconnected" | "connecting" | "connected" | "joined";
+
+/** Client transport plus the presentation-only prediction/reconciliation layer. */
 export class NetworkSession {
-  socket: Socket | null = null; playerId: PlayerId | null = null; serverTick = 0; status: NetworkSessionStatus = "disconnected"; private current: GameState | null = null; private reconnectToken: string | null = null;
-  readonly history = new InputHistory(); readonly snapshots = new SnapshotBuffer();
-  constructor(private readonly options: NetworkSessionOptions) {}
+  socket: Socket | null = null;
+  playerId: PlayerId | null = null;
+  serverTick = 0;
+  status: NetworkSessionStatus = "disconnected";
+  private current: GameState | null = null;
+  private authoritative: GameState | null = null;
+  private render: GameState | null = null;
+  private predictionRng: SeededRandom | null = null;
+  private reconnectToken: string | null = null;
+  private lastSnapshotTick = -1;
+  private lastSnapshotReceivedAt = 0;
+  private readonly interpolationDelayTicks: number;
+  acknowledgedThrough = -1;
+  predictionErrors = 0;
+  lastPredictionError = 0;
+  readonly history = new InputHistory();
+  readonly snapshots = new SnapshotBuffer();
+
+  constructor(private readonly options: NetworkSessionOptions) {
+    this.interpolationDelayTicks = Math.max(0, options.interpolationDelayTicks ?? 2);
+  }
+  /** Backwards-compatible gameplay state: the locally predicted state. */
   get state(): GameState | null { return this.current; }
+  get predictedState(): GameState | null { return this.current; }
+  get authoritativeState(): GameState | null { return this.authoritative; }
+  get renderState(): GameState | null { return this.render; }
+  get pendingInputs(): readonly SequencedInput[] { return this.history.unacknowledged(this.acknowledgedThrough); }
+
   private setStatus(status: NetworkSessionStatus): void { this.status = status; this.options.onStatus?.(status); }
   connect(): void {
     if (this.socket) return;
@@ -30,9 +65,13 @@ export class NetworkSession {
       try {
         const snapshot = deserializeSnapshot(value);
         if (!this.snapshots.push(snapshot)) return;
-        if (snapshot.acknowledgedThrough !== undefined) this.history.acknowledge(snapshot.acknowledgedThrough);
-        this.current = structuredClone(snapshot.state);
-        this.serverTick = snapshot.tick;
+        this.serverTick = Math.max(this.serverTick, snapshot.tick);
+        if (snapshot.acknowledgedThrough !== undefined) {
+          this.acknowledgedThrough = Math.max(this.acknowledgedThrough, snapshot.acknowledgedThrough);
+          this.history.acknowledge(this.acknowledgedThrough);
+        }
+        this.reconcile(snapshot);
+        this.lastSnapshotReceivedAt = Date.now();
         this.options.onSnapshot?.(snapshot);
       } catch (error) { this.options.onError?.(error); }
     };
@@ -40,15 +79,70 @@ export class NetworkSession {
     socket.on(EVENTS.error, (error: unknown) => this.options.onError?.(error));
     socket.on("disconnect", () => { this.playerId = null; this.setStatus("disconnected"); });
   }
+
+  private reconcile(snapshot: NetworkSnapshot): void {
+    if (snapshot.tick < this.lastSnapshotTick) return;
+    this.lastSnapshotTick = snapshot.tick;
+    const before = this.current;
+    this.authoritative = structuredClone(snapshot.state);
+    this.predictionRng = SeededRandom.deserialize(snapshot.rngState);
+    let rebuilt = structuredClone(snapshot.state);
+    const pending = this.history.unacknowledged(this.acknowledgedThrough);
+    for (const input of pending) rebuilt = step(rebuilt, [input.command], { rng: this.predictionRng }).state;
+    this.current = rebuilt;
+    this.render = structuredClone(rebuilt);
+    const localId = this.playerId;
+    const oldPlayer = before && localId !== null ? before.entities[before.players[localId]] : undefined;
+    const newPlayer = localId !== null ? rebuilt.entities[rebuilt.players[localId]] : undefined;
+    this.lastPredictionError = oldPlayer && newPlayer ? Math.hypot(oldPlayer.position.x - newPlayer.position.x, oldPlayer.position.y - newPlayer.position.y) : 0;
+    if (this.lastPredictionError > 0.01) this.predictionErrors++;
+  }
+
   send(command: Omit<InputCommand, "playerId" | "tick">, tick: number): void {
     if (!this.socket || this.playerId === null || this.status !== "joined") return;
     const full = { ...command, playerId: this.playerId, tick } as InputCommand;
-    const record = this.history.record(tick, full); this.socket.emit(EVENTS.input, record);
+    const record = this.history.record(tick, full);
+    this.socket.emit(EVENTS.input, record);
   }
+
+  /** Send one tick's commands and apply them together immediately, matching the server. */
   step(commands: readonly InputCommand[]): GameState | null {
-    for (const command of commands) { const { playerId: _playerId, tick, ...input } = command; this.send(input, tick); }
+    if (!this.current) return null;
+    for (const command of commands) {
+      const { playerId: _playerId, tick, ...input } = command;
+      this.send(input, tick);
+    }
+    if (commands.length && this.predictionRng) {
+      this.current = step(this.current, commands, { rng: this.predictionRng }).state;
+      this.render = structuredClone(this.current);
+    }
     return this.current;
   }
-  reset(): void { this.snapshots.lastAppliedTick = -1; this.current = null; this.history.acknowledge(Number.MAX_SAFE_INTEGER); }
+
+  /** Interpolated presentation state for remote entities; local player remains predicted. */
+  getInterpolatedState(now = Date.now()): GameState | null {
+    if (!this.current) return null;
+    const latest = this.snapshots.latest();
+    if (!latest) return this.current;
+    const targetTick = latest.tick - this.interpolationDelayTicks + Math.max(0, now - this.lastSnapshotReceivedAt) / TICK_MS;
+    const bracket = this.snapshots.bracket(targetTick);
+    if (!bracket) return this.current;
+    const [a, b] = bracket;
+    const alpha = a.tick === b.tick ? 0 : (targetTick - a.tick) / (b.tick - a.tick);
+    const remote = interpolateSnapshots(a, b, alpha).state;
+    const result = structuredClone(this.current);
+    for (const [id, entity] of Object.entries(remote.entities)) {
+      if (this.playerId !== null && Number(id) === result.players[this.playerId]) continue;
+      if (result.entities[Number(id)]) result.entities[Number(id)] = entity;
+    }
+    this.render = result;
+    this.snapshots.discardBefore(Math.floor(targetTick));
+    return result;
+  }
+
+  reset(): void {
+    this.snapshots.lastAppliedTick = -1; this.current = null; this.authoritative = null; this.render = null;
+    this.lastSnapshotTick = -1; this.acknowledgedThrough = -1; this.history.clear();
+  }
   disconnect(): void { this.socket?.disconnect(); this.socket = null; this.playerId = null; this.setStatus("disconnected"); }
 }

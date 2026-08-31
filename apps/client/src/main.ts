@@ -151,6 +151,10 @@ function frame(now: number): void {
     session.step(sampleInput());
     accumulator -= tickDuration;
   }
+  // Remote entities are rendered from a two-snapshot buffer while the local
+  // player is retained from the predicted state.
+  currentState = session.getInterpolatedState(now) ?? session.state;
+  if (!currentState) { requestAnimationFrame(frame); return; }
   const localPlayerId = session.playerId ?? LOCAL_PLAYER_ID;
   const context = gameStateToRender(currentState, localPlayerId);
   gameRenderer.render(context);
