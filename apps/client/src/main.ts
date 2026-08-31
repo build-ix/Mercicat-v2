@@ -98,6 +98,7 @@ function restart(): void {
   accumulator = 0;
   previousTime = performance.now();
   keys.clear();
+  camera.position.set(0, 0, 10);
   endScreen.classList.remove("visible");
 }
 restartButton.addEventListener("click", restart);
