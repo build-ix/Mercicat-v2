@@ -1,4 +1,4 @@
-import type { InputCommand, RoomLifecycleEvent } from "@mercicat/shared";
+import { TICK_MS, type InputCommand, type RoomLifecycleEvent } from "@mercicat/shared";
 import { step } from "@mercicat/simulation";
 import { serializeCanonicalSnapshot } from "./snapshot.js";
 import type { Room } from "./roomManager.js";
@@ -9,11 +9,11 @@ export class FixedTickLoop {
   private nextTime = 0;
   readonly maxCatchUp: number;
   constructor(private readonly room: Room, private readonly options: TickLoopOptions = {}) { this.maxCatchUp = options.maxCatchUp ?? 5; }
-  start(): void { if (this.timer) return; const now = this.options.now ?? (() => Date.now()); this.nextTime = now(); this.timer = setInterval(() => this.pump(now()), 1000 / 30); }
+  start(): void { if (this.timer) return; const now = this.options.now ?? (() => Date.now()); this.nextTime = now(); this.timer = setInterval(() => this.pump(now()), TICK_MS); }
   stop(): void { if (this.timer) clearInterval(this.timer); this.timer = null; }
   pump(now = (this.options.now ?? (() => Date.now()))()): number {
-    if (!this.nextTime) this.nextTime = now; let count = 0; while (now >= this.nextTime && count < this.maxCatchUp) { this.tick(); this.nextTime += 1000 / 30; count++; }
-    if (count === this.maxCatchUp && now >= this.nextTime) this.nextTime = now + 1000 / 30; return count;
+    if (!this.nextTime) this.nextTime = now; let count = 0; while (now >= this.nextTime && count < this.maxCatchUp) { this.tick(); this.nextTime += TICK_MS; count++; }
+    if (count === this.maxCatchUp && now >= this.nextTime) this.nextTime = now + TICK_MS; return count;
   }
   tick(): void {
     for (const event of this.room.drainLifecycleEvents()) this.options.onRoomEvent?.(this.room, event);

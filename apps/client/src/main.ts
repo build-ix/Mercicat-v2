@@ -6,6 +6,7 @@ import { LocalSession } from "./session";
 
 const LOCAL_PLAYER_ID = 1;
 const SEED = 12345;
+const MAX_FRAME_DELTA_MS = (1000 / TICK_RATE) * 5;
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setClearColor(0x1a1a1e);
@@ -24,6 +25,8 @@ const session = new LocalSession(SEED, [LOCAL_PLAYER_ID]);
 const gameRenderer = new GameRenderer(scene);
 const keys = new Set<string>();
 let mouseWorldPos = { x: 0, y: 0 };
+let fireRequested = false;
+let fps = 0;
 
 const status = document.getElementById("status")!;
 const tickValue = document.getElementById("tick")!;
@@ -49,8 +52,9 @@ function updateMouseWorldPosition(event: MouseEvent): void {
   };
 }
 canvas.addEventListener("mousemove", updateMouseWorldPosition);
-window.addEventListener("keydown", (event) => keys.add(event.key.toLowerCase()));
+window.addEventListener("keydown", (event) => { const key = event.key.toLowerCase(); if (key === " " && !event.repeat) fireRequested = true; keys.add(key); });
 window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
+canvas.addEventListener("pointerdown", () => { fireRequested = true; });
 
 function sampleInput(): InputCommand[] {
   const commands: InputCommand[] = [];
@@ -63,13 +67,14 @@ function sampleInput(): InputCommand[] {
   // Always send a movement state sample, including zero, so key release is
   // represented explicitly at the simulation tick.
   commands.push({ type: "move", tick: session.state.tick, playerId: LOCAL_PLAYER_ID, direction: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 } });
-  if (keys.has(" ")) {
+  if (fireRequested) {
     const player = session.state.entities[session.state.players[LOCAL_PLAYER_ID]];
     if (player?.kind === "player") {
       const angle = Math.atan2(mouseWorldPos.y - player.position.y, mouseWorldPos.x - player.position.x);
       commands.push({ type: "fire", tick: session.state.tick, playerId: LOCAL_PLAYER_ID, direction: { x: Math.cos(angle), y: Math.sin(angle) } });
     }
   }
+  fireRequested = false;
   return commands;
 }
 
@@ -78,7 +83,7 @@ function updateHud(context: ReturnType<typeof gameStateToRender>): void {
   tickValue.textContent = String(session.state.tick);
   status.textContent = context.hud.phase === "playing" ? "Playing" : context.hud.phase;
   status.style.color = context.hud.phase === "playing" ? "#00ff00" : "#ff8080";
-  fpsValue.textContent = "60";
+  fpsValue.textContent = String(Math.round(fps));
   waveValue.textContent = String(context.hud.wave);
   playersValue.textContent = context.localPlayer ? "1" : "0";
   enemiesValue.textContent = String(context.hud.enemiesRemaining);
@@ -98,6 +103,7 @@ function restart(): void {
   accumulator = 0;
   previousTime = performance.now();
   keys.clear();
+  fireRequested = false;
   camera.position.set(0, 0, 10);
   endScreen.classList.remove("visible");
 }
@@ -122,8 +128,10 @@ const tickDuration = 1000 / TICK_RATE;
 let accumulator = 0;
 let previousTime = performance.now();
 function frame(now: number): void {
-  const delta = Math.min(now - previousTime, tickDuration * 5);
+  const delta = Math.min(now - previousTime, MAX_FRAME_DELTA_MS);
   previousTime = now;
+  const instantFps = delta > 0 ? 1000 / delta : 0;
+  fps = fps === 0 ? instantFps : fps * 0.9 + instantFps * 0.1;
   accumulator += delta;
   while (accumulator >= tickDuration) {
     session.step(sampleInput());
