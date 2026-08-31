@@ -5,7 +5,8 @@
   "main": "dist/main.js",
   "scripts": {
     "dev": "node --loader ts-node/esm src/main.ts",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "vitest --run"
   },
   "dependencies": {
     "@mercicat/content": "workspace:*",

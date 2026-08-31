@@ -18,6 +18,10 @@ export interface PlayerSlot {
   socketId: string | null;
 }
 
+export type RoomLifecycleEvent =
+  | { type: "joined" | "reconnected"; tick: Tick; playerId: PlayerId }
+  | { type: "left" | "disconnected"; tick: Tick; playerId: PlayerId };
+
 export interface NetworkSnapshot {
   readonly tick: Tick;
   readonly state: GameState;
