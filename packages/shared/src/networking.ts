@@ -24,6 +24,8 @@ export type RoomLifecycleEvent =
   | { type: "left" | "disconnected"; tick: Tick; playerId: PlayerId };
 
 export interface NetworkSnapshot {
+  /** Wire schema version, independent from the simulation tick/version. */
+  readonly schemaVersion?: 1;
   readonly tick: Tick;
   readonly state: GameState;
   readonly stateHash: string;

@@ -16,7 +16,7 @@ export function snapshotChecksum(snapshot: Omit<NetworkSnapshot, "checksum">): s
   return hash.toString(16).padStart(8, "0");
 }
 export function serializeCanonicalSnapshot(state: GameState, rng: SeededRandom, dev = false): NetworkSnapshot {
-  const snapshot: Omit<NetworkSnapshot, "checksum"> = { tick: state.tick, state: structuredClone(state), stateHash: hashGameState(state), rngState: rng.serialize() };
+  const snapshot: Omit<NetworkSnapshot, "checksum"> = { schemaVersion: 1, tick: state.tick, state: structuredClone(state), stateHash: hashGameState(state), rngState: rng.serialize() };
   return dev ? { ...snapshot, checksum: snapshotChecksum(snapshot) } : snapshot;
 }
 export function verifySnapshot(snapshot: NetworkSnapshot): boolean {
