@@ -2,7 +2,7 @@ import type { GameState, InputCommand, PlayerId, Tick } from "./simulation/contr
 
 export const TICK_RATE = 30;
 export const TICK_MS = 1000 / TICK_RATE;
-export const MAX_PLAYERS = 4;
+export const MAX_PLAYERS = 2;
 
 export interface SequencedInput {
   readonly sequence: number;
@@ -17,6 +17,7 @@ export interface PlayerSlot {
   ready: boolean;
   socketId: string | null;
   readonly reconnectToken: string;
+  disconnectedAt?: number;
 }
 
 export type RoomLifecycleEvent =

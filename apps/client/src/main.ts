@@ -25,7 +25,8 @@ const session = new NetworkSession({
   url: `http://${window.location.hostname}:3001`,
   roomId: new URLSearchParams(window.location.search).get("room") ?? "default",
   onStatus: (value) => { status.textContent = value === "joined" ? "Playing" : value; },
-  onError: (error) => console.warn("Network protocol error", error)
+  onError: (error) => console.warn("Network protocol error", error),
+  useAuthoritativeOnly: true, // Phase 2A: render server state only
 });
 session.connect();
 const gameRenderer = new GameRenderer(scene);
@@ -151,9 +152,8 @@ function frame(now: number): void {
     session.step(sampleInput());
     accumulator -= tickDuration;
   }
-  // Remote entities are rendered from a two-snapshot buffer while the local
-  // player is retained from the predicted state.
-  currentState = session.getInterpolatedState(now) ?? session.state;
+  // Phase 2A: render authoritative server state only (no prediction/interpolation).
+  currentState = session.getRenderableState() ?? session.state;
   if (!currentState) { requestAnimationFrame(frame); return; }
   const localPlayerId = session.playerId ?? LOCAL_PLAYER_ID;
   const context = gameStateToRender(currentState, localPlayerId);

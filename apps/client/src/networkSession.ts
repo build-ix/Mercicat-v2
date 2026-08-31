@@ -13,6 +13,8 @@ export interface NetworkSessionOptions {
   onError?: (message: unknown) => void;
   /** Number of server ticks to render behind the newest snapshot. */
   interpolationDelayTicks?: number;
+  /** Phase 2A: render authoritative state only. Phase 2B+: use prediction/interpolation. Default false. */
+  useAuthoritativeOnly?: boolean;
 }
 export type NetworkSessionStatus = "disconnected" | "connecting" | "connected" | "joined";
 
@@ -35,15 +37,19 @@ export class NetworkSession {
   lastPredictionError = 0;
   readonly history = new InputHistory();
   readonly snapshots = new SnapshotBuffer();
+  private readonly useAuthoritativeOnly: boolean;
 
   constructor(private readonly options: NetworkSessionOptions) {
     this.interpolationDelayTicks = Math.max(0, options.interpolationDelayTicks ?? 2);
+    this.useAuthoritativeOnly = options.useAuthoritativeOnly ?? false;
   }
   /** Backwards-compatible gameplay state: the locally predicted state. */
   get state(): GameState | null { return this.current; }
   get predictedState(): GameState | null { return this.current; }
   get authoritativeState(): GameState | null { return this.authoritative; }
   get renderState(): GameState | null { return this.render; }
+  /** For Phase 2A (auth-only) rendering, use authoritativeState directly. For Phase 2B+, use render (prediction/interpolation). */
+  getRenderableState(): GameState | null { return this.useAuthoritativeOnly ? this.authoritative : this.render; }
   get pendingInputs(): readonly SequencedInput[] { return this.history.unacknowledged(this.acknowledgedThrough); }
 
   private setStatus(status: NetworkSessionStatus): void { this.status = status; this.options.onStatus?.(status); }

@@ -1,5 +1,6 @@
 import { createInitialState } from "@mercicat/simulation";
 import { SeededRandom, MAX_PLAYERS, PlayerSlot, PlayerId, RoomLifecycleEvent, SimulationEvent } from "@mercicat/shared";
+import { randomUUID } from "crypto";
 import { PlayerInputBuffer } from "./inputBuffer.js";
 
 export class Room {
@@ -23,7 +24,7 @@ export class Room {
       return disconnected;
     }
     const playerId = this.slots.size + 1; const entityId = this.state.nextEntityId++;
-    const slot: PlayerSlot = { playerId, entityId, connected: true, ready: false, socketId, reconnectToken: `${this.id}:${playerId}:${Math.random().toString(36).slice(2)}` };
+    const slot: PlayerSlot = { playerId, entityId, connected: true, ready: false, socketId, reconnectToken: randomUUID() };
     this.slots.set(playerId, slot); this.inputs.set(playerId, new PlayerInputBuffer(playerId));
     this.state.players[playerId] = entityId;
     this.state.entities[entityId] = { id: entityId, kind: "player", lifecycle: "active", playerId, position: { x: playerId * 30, y: 0 }, velocity: { x: 0, y: 0 }, radius: 12, health: 100, maxHealth: 100, spawnTick: this.state.tick, despawnTick: null, fireCooldownTicks: 0 };
@@ -31,7 +32,7 @@ export class Room {
     return slot;
   }
   ready(playerId: PlayerId, value = true): boolean { const slot = this.slots.get(playerId); if (!slot || !slot.connected) return false; slot.ready = value; return true; }
-  disconnect(socketId: string): void { const slot = [...this.slots.values()].find((s) => s.socketId === socketId); if (slot) { slot.connected = false; slot.socketId = null; slot.ready = false; this.lifecycleEvents.push({ type: "disconnected", tick: this.state.tick, playerId: slot.playerId }); } }
+  disconnect(socketId: string): void { const slot = [...this.slots.values()].find((s) => s.socketId === socketId); if (slot) { slot.connected = false; slot.socketId = null; slot.ready = false; slot.disconnectedAt = Date.now(); this.lifecycleEvents.push({ type: "disconnected", tick: this.state.tick, playerId: slot.playerId }); } }
   drainLifecycleEvents(): RoomLifecycleEvent[] { return this.lifecycleEvents.splice(0); }
   enqueueSimulationEvents(events: readonly SimulationEvent[]): void { this.simulationEvents.push(...events); }
   drainSimulationEvents(): SimulationEvent[] { return this.simulationEvents.splice(0); }
