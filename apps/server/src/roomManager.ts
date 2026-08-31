@@ -9,10 +9,11 @@ export class Room {
   readonly rng: SeededRandom;
   readonly lifecycleEvents: RoomLifecycleEvent[] = [];
   constructor(readonly id: string, seed: number | string = 1) { this.rng = new SeededRandom(seed); this.state = createInitialState(seed, []); }
-  join(socketId: string): PlayerSlot | null {
+  join(socketId: string, reconnectToken?: string): PlayerSlot | null {
     const existing = [...this.slots.values()].find((s) => s.socketId === socketId);
     if (existing) return existing;
-    const disconnected = [...this.slots.values()].find((s) => !s.connected);
+    const disconnected = [...this.slots.values()].find((s) => !s.connected && (!reconnectToken || s.reconnectToken === reconnectToken));
+    if (reconnectToken && !disconnected && [...this.slots.values()].some((s) => !s.connected)) return null;
     if (!disconnected && this.connectedCount() >= MAX_PLAYERS) return null;
     if (disconnected) {
       disconnected.connected = true; disconnected.socketId = socketId; disconnected.ready = false;
@@ -20,7 +21,7 @@ export class Room {
       return disconnected;
     }
     const playerId = this.slots.size + 1; const entityId = this.state.nextEntityId++;
-    const slot: PlayerSlot = { playerId, entityId, connected: true, ready: false, socketId };
+    const slot: PlayerSlot = { playerId, entityId, connected: true, ready: false, socketId, reconnectToken: `${this.id}:${playerId}:${Math.random().toString(36).slice(2)}` };
     this.slots.set(playerId, slot); this.inputs.set(playerId, new PlayerInputBuffer(playerId));
     this.state.players[playerId] = entityId;
     this.state.entities[entityId] = { id: entityId, kind: "player", lifecycle: "active", playerId, position: { x: playerId * 30, y: 0 }, velocity: { x: 0, y: 0 }, radius: 12, health: 100, maxHealth: 100, spawnTick: this.state.tick, despawnTick: null, fireCooldownTicks: 0 };

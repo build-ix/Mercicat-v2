@@ -13,10 +13,10 @@ const socketRooms = new Map<string, string>();
 
 io.on("connection", (socket) => {
   socket.emit(EVENTS.hello, { protocol: PROTOCOL_VERSION, serverTick: 0, tickRate: TICK_RATE });
-  socket.on(EVENTS.joinRoom, (data: { roomId?: string }) => {
-    const roomId = data?.roomId || "default"; const room = rooms.getOrCreate(roomId, `match:${roomId}`); const slot = room.join(socket.id);
+  socket.on(EVENTS.joinRoom, (data: { roomId?: string; reconnectToken?: string }) => {
+    const roomId = data?.roomId || "default"; const room = rooms.getOrCreate(roomId, `match:${roomId}`); const slot = room.join(socket.id, data?.reconnectToken);
     if (!slot) { socket.emit(EVENTS.error, { code: "ROOM_FULL" }); return; }
-    socketRooms.set(socket.id, roomId); socket.join(roomId); socket.emit(EVENTS.joinedRoom, { roomId, playerId: slot.playerId, slot: slot.playerId - 1 });
+    socketRooms.set(socket.id, roomId); socket.join(roomId); socket.emit(EVENTS.joinedRoom, { roomId, playerId: slot.playerId, slot: slot.playerId - 1, reconnectToken: slot.reconnectToken });
     socket.emit(EVENTS.initialState, serializeCanonicalSnapshot(room.state, room.rng, true));
     if (!loops.has(roomId)) { const loop = new FixedTickLoop(room, { onSnapshot: (r, snapshot) => io.to(r.id).emit(EVENTS.snapshot, snapshot), onRoomEvent: (r, event) => io.to(r.id).emit(EVENTS.room, { roomId: r.id, event }) }); loops.set(roomId, loop); loop.start(); }
   });

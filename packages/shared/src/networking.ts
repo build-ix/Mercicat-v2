@@ -16,6 +16,7 @@ export interface PlayerSlot {
   connected: boolean;
   ready: boolean;
   socketId: string | null;
+  readonly reconnectToken: string;
 }
 
 export type RoomLifecycleEvent =
