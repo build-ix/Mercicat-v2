@@ -45,9 +45,10 @@ function applyCommands(state: GameState, commands: readonly InputCommand[], even
   for (const command of commands) {
     const id = state.players[command.playerId]; const player = state.entities[id];
     if (!player || player.lifecycle !== "active" || player.kind !== "player") continue;
-    if (command.type === "move") player.velocity = { x: clamp(command.direction.x, -1, 1) * PLAYER_SPEED_PER_TICK, y: clamp(command.direction.y, -1, 1) * PLAYER_SPEED_PER_TICK };
+    const direction = commandDirection(command);
+    if (command.type === "move") player.velocity = { x: clamp(direction.x, -1, 1) * PLAYER_SPEED_PER_TICK, y: clamp(direction.y, -1, 1) * PLAYER_SPEED_PER_TICK };
     if (command.type === "fire" && (player as import("@mercicat/shared").PlayerEntity).fireCooldownTicks === 0) {
-      const id = state.nextEntityId++; const direction = command.direction;
+      const id = state.nextEntityId++;
       state.entities[id] = { id, kind: "projectile", lifecycle: "active", ownerId: player.id,
         position: { x: player.position.x + direction.x * 20, y: player.position.y + direction.y * 20 },
         velocity: { x: direction.x * PROJECTILE_SPEED_PER_TICK, y: direction.y * PROJECTILE_SPEED_PER_TICK }, radius: 4, health: 1, maxHealth: 1,
@@ -114,4 +115,8 @@ function updateWaveState(state: GameState, rng: SeededRandom, events: Simulation
 }
 
 function clamp(value: number, min: number, max: number): number { return Math.max(min, Math.min(max, value)); }
+function commandDirection(command: InputCommand): { x: number; y: number } {
+  if (command.direction) return command.direction;
+  return { x: command.aimX ?? command.moveX ?? 0, y: command.aimY ?? command.moveY ?? 0 };
+}
 export type { Tick, EntityId };

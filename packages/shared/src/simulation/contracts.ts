@@ -86,30 +86,20 @@ export interface GameState {
   score: number;
 }
 
-export type InputCommand =
-  | {
-      type: "move";
-      tick: Tick;
-      playerId: PlayerId;
-      direction: Vec2;
-    }
-  | {
-      type: "fire";
-      tick: Tick;
-      playerId: PlayerId;
-      direction: Vec2;
-    }
-  | {
-      type: "usePickup";
-      tick: Tick;
-      playerId: PlayerId;
-      pickupId: EntityId;
-    }
-  | {
-      type: "pause";
-      tick: Tick;
-      playerId: PlayerId;
-    };
+export interface InputCommand {
+  type: "move" | "fire" | "reload" | "ability" | "pause" | "usePickup";
+  tick: Tick;
+  playerId: PlayerId;
+  moveX?: number;
+  moveY?: number;
+  aimX?: number;
+  aimY?: number;
+  reloadTick?: Tick;
+  abilityId?: string;
+  /** Deprecated wire aliases retained for clients from protocol v2. */
+  direction?: Vec2;
+  pickupId?: EntityId;
+}
 
 export type SimulationEvent =
   | {
