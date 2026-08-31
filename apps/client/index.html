@@ -46,6 +46,26 @@
         color: #00ff00;
         font-weight: bold;
       }
+      #health { color: #66ff88; }
+      #phase { text-transform: uppercase; }
+      #end-screen {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+        gap: 18px;
+        background: rgba(8, 8, 12, 0.78);
+        z-index: 20;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 120ms ease;
+      }
+      #end-screen.visible { opacity: 1; pointer-events: auto; }
+      #end-message { color: #ffb060; font-size: 28px; font-weight: bold; text-shadow: 0 2px 8px #000; }
+      #restart { cursor: pointer; border: 1px solid #ff8040; border-radius: 5px; padding: 10px 26px; background: #301c12; color: #fff; font: inherit; }
+      #restart:hover { background: #5a2b18; }
       #status {
         color: #ffff00;
         margin-top: 8px;
@@ -101,6 +121,22 @@
         <span class="label">Enemies:</span>
         <span id="enemies" class="value">0</span>
       </div>
+      <div class="stat">
+        <span class="label">Health:</span>
+        <span id="health" class="value">100 / 100</span>
+      </div>
+      <div class="stat">
+        <span class="label">Score:</span>
+        <span id="score" class="value">0</span>
+      </div>
+      <div class="stat">
+        <span class="label">Phase:</span>
+        <span id="phase" class="value">playing</span>
+      </div>
+    </div>
+    <div id="end-screen" aria-live="assertive">
+      <div id="end-message">Victory! Wave 5 Complete</div>
+      <button id="restart" type="button">Restart</button>
     </div>
     <div id="help">
       <div style="color: #ff8040; font-weight: bold; margin-bottom: 6px;">CONTROLS</div>
