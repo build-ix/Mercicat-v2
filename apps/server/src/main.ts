@@ -18,7 +18,7 @@ io.on("connection", (socket) => {
     const roomId = data?.roomId || "default"; const room = rooms.getOrCreate(roomId, `match:${roomId}`); const slot = room.join(socket.id);
     if (!slot) { socket.emit(EVENTS.error, { code: "ROOM_FULL" }); return; }
     socketRooms.set(socket.id, roomId); socket.join(roomId); socket.emit(EVENTS.joinedRoom, { roomId, playerId: slot.playerId, slot: slot.playerId - 1 });
-    socket.emit(EVENTS.initialState, { state: room.state, stateHash: hashGameState(room.state) });
+    socket.emit(EVENTS.initialState, serializeCanonicalSnapshot(room.state, room.rng, true));
     if (!loops.has(roomId)) { const loop = new FixedTickLoop(room, { onSnapshot: (r, snapshot) => io.to(r.id).emit(EVENTS.snapshot, snapshot) }); loops.set(roomId, loop); loop.start(); }
   });
   socket.on(EVENTS.ready, (data: { ready?: boolean }) => { const room = rooms.get(socketRooms.get(socket.id) ?? ""); const slot = room && [...room.slots.values()].find((s) => s.socketId === socket.id); if (room && slot) room.ready(slot.playerId, data?.ready !== false); });

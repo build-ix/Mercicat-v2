@@ -12,6 +12,7 @@ export class NetworkSession {
     this.socket = io(this.options.url, { autoConnect: true });
     this.socket.on(EVENTS.hello, (hello: { protocol: number; serverTick: number }) => { if (hello.protocol !== PROTOCOL_VERSION) throw new Error("Protocol mismatch"); this.serverTick = hello.serverTick; this.socket?.emit(EVENTS.joinRoom, { roomId: this.options.roomId }); });
     this.socket.on(EVENTS.joinedRoom, (message: { playerId: PlayerId }) => { this.playerId = message.playerId; this.socket?.emit(EVENTS.ready, { ready: true }); });
+    this.socket.on(EVENTS.initialState, (snapshot: NetworkSnapshot) => { if (this.snapshots.push(snapshot)) this.options.onSnapshot?.(snapshot); });
     this.socket.on(EVENTS.snapshot, (snapshot: NetworkSnapshot) => { if (this.snapshots.push(snapshot)) this.options.onSnapshot?.(snapshot); });
   }
   send(command: Omit<InputCommand, "playerId" | "tick">, tick: number): void { if (!this.socket || this.playerId === null) return; const full = { ...command, playerId: this.playerId, tick } as InputCommand; const record = this.history.record(tick, full); this.socket.emit(EVENTS.input, record); }

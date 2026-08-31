@@ -18,7 +18,7 @@ export interface HelloMessage { protocol: 2; serverTick: Tick; tickRate: number;
 export interface JoinRoomMessage { roomId: string; }
 export interface JoinedRoomMessage { roomId: string; playerId: PlayerId; slot: number; }
 export interface ReadyMessage { ready: boolean; }
-export interface InitialStateMessage { state: GameState; stateHash: string; }
+export interface InitialStateMessage { tick: Tick; state: GameState; stateHash: string; rngState: string; checksum?: string; }
 export type SnapshotMessage = NetworkSnapshot;
 
 export const PROTOCOL_VERSION = 2 as const;
