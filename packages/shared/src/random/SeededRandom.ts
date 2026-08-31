@@ -8,7 +8,7 @@ export interface RandomSource {
   setState(state: number): void;
 }
 
-function hashSeed(seed: number | string): number {
+export function hashSeed(seed: number | string): number {
   if (typeof seed === "number") {
     return seed >>> 0;
   }
@@ -41,7 +41,14 @@ export class SeededRandom implements RandomSource {
     return this.nextUint32() / 0x100000000;
   }
 
-  nextInt(minInclusive: number, maxInclusive: number): number {
+  /** Short alias used by simulation-specific RNG streams. */
+  next(): number { return this.nextFloat(); }
+
+  nextInt(minInclusive: number, maxInclusive?: number): number {
+    if (maxInclusive === undefined) {
+      if (!Number.isInteger(minInclusive) || minInclusive <= 0) throw new Error("nextInt max must be a positive integer");
+      return Math.floor(this.nextFloat() * minInclusive);
+    }
     if (!Number.isInteger(minInclusive) || !Number.isInteger(maxInclusive)) {
       throw new Error("nextInt bounds must be integers");
     }
@@ -81,4 +88,28 @@ export class SeededRandom implements RandomSource {
     if (!/^[0-9a-fA-F]{8}$/.test(serialized)) throw new Error("Invalid serialized RNG state");
     const rng = new SeededRandom(1); rng.setState(Number.parseInt(serialized, 16)); return rng;
   }
+}
+
+export type RngStreamName = "enemySpawn" | "weaponSpread" | "loot" | "wave" | "ai" | (string & {});
+
+/** Creates independently-seeded deterministic streams from one match seed. */
+export class RngStreamFactory extends SeededRandom {
+  private readonly baseSeed: number | string;
+  private readonly streamName: string;
+  private readonly streams = new Map<string, SeededRandom>();
+
+  constructor(baseSeed: number | string, streamName = "default") {
+    super(`${String(baseSeed)}::${streamName}`);
+    this.baseSeed = baseSeed;
+    this.streamName = streamName;
+  }
+
+  stream(name: RngStreamName): SeededRandom {
+    let stream = this.streams.get(name);
+    if (!stream) { stream = new SeededRandom(`${String(this.baseSeed)}::${name}`); this.streams.set(name, stream); }
+    return stream;
+  }
+
+  named(name: RngStreamName): SeededRandom { return this.stream(name); }
+  get name(): string { return this.streamName; }
 }
