@@ -24,6 +24,14 @@ describe("deterministic simulation", () => {
   it("changes when the seed changes", () => {
     expect(run("week-1", 120)[119]).not.toBe(run("week-1-other", 120)[119]);
   });
+  it("stops a player when the movement sample is released", () => {
+    let state = createInitialState(1, [1]);
+    const rng = new SeededRandom(1);
+    state = step(state, [{ type: "move", tick: 0, playerId: 1, direction: { x: 1, y: 0 } }], { rng }).state;
+    expect(state.entities[state.players[1]]?.velocity.x).toBe(5);
+    state = step(state, [], { rng }).state;
+    expect(state.entities[state.players[1]]?.velocity).toEqual({ x: 0, y: 0 });
+  });
   it("hashes canonical state independent of object insertion order", () => {
     const state = createInitialState(1, [1, 2]);
     const reversed = { ...state, entities: Object.fromEntries(Object.entries(state.entities).reverse()) };

@@ -61,7 +61,9 @@ function sampleInput(): InputCommand[] {
   if (keys.has("a")) dx -= 1;
   if (keys.has("d")) dx += 1;
   const length = Math.hypot(dx, dy);
-  if (length > 0) commands.push({ type: "move", tick: state.tick, playerId: LOCAL_PLAYER_ID, direction: { x: dx / length, y: dy / length } });
+  // Always send a movement state sample, including zero, so key release is
+  // represented explicitly at the simulation tick.
+  commands.push({ type: "move", tick: state.tick, playerId: LOCAL_PLAYER_ID, direction: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 } });
   if (keys.has(" ")) {
     const player = state.entities[state.players[LOCAL_PLAYER_ID]];
     if (player?.kind === "player") {

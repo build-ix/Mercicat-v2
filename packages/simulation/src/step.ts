@@ -7,8 +7,7 @@ import { applyDamage } from "./systems/damageSystem.js";
 import { spawnEnemies } from "./enemies.js";
 export interface SimulationContext { readonly rng: SeededRandom; }
 
-// Simulation units are world-units per tick. At 60 Hz these correspond to
-// 300 world-units/sec for the player and 600 world-units/sec for shots.
+// Simulation units are world-units per tick at the canonical TICK_RATE.
 export const PLAYER_SPEED_PER_TICK = 5;
 export const PROJECTILE_SPEED_PER_TICK = 10;
 
@@ -37,6 +36,12 @@ function compareCommands(a: InputCommand, b: InputCommand): number {
   return a.playerId - b.playerId || a.type.localeCompare(b.type);
 }
 function applyCommands(state: GameState, commands: readonly InputCommand[], events: SimulationEvent[]): void {
+  // Movement is a per-tick state sample. A missing move command must not leave
+  // the previous velocity active after a key is released.
+  for (const entityId of Object.values(state.players)) {
+    const player = state.entities[entityId];
+    if (player?.kind === "player" && player.lifecycle === "active") player.velocity = { x: 0, y: 0 };
+  }
   for (const command of commands) {
     const id = state.players[command.playerId]; const player = state.entities[id];
     if (!player || player.lifecycle !== "active" || player.kind !== "player") continue;
