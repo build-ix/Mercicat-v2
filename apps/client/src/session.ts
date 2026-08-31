@@ -8,6 +8,9 @@ export interface Session {
   reset(): void;
 }
 
+/** A session owns the authoritative view consumed by the renderer. */
+export type SessionKind = "local" | "network";
+
 export class LocalSession implements Session {
   private current: GameState;
   private rng: SeededRandom;
