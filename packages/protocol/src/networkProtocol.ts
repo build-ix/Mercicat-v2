@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { GameState, InputCommand, NetworkSnapshot, PlayerId, Tick, RoomLifecycleEvent } from "@mercicat/shared";
+import { hashGameState, type GameState, type InputCommand, type NetworkSnapshot, type PlayerId, type Tick, type RoomLifecycleEvent } from "@mercicat/shared";
 
 export const WireInputSchema = z.object({
   sequence: z.number().int().nonnegative(),
@@ -37,7 +37,9 @@ export function serializeSnapshot(state: GameState, stateHash: string, rngState:
 }
 export function deserializeSnapshot(value: unknown): SnapshotMessage {
   const result = value as SnapshotMessage;
-  if (!result || !Number.isInteger(result.tick) || typeof result.stateHash !== "string" || typeof result.rngState !== "string" || !result.state) throw new Error("Invalid snapshot");
+  if (!result || !Number.isInteger(result.tick) || result.tick < 0 || typeof result.stateHash !== "string" || !/^[0-9a-f]{16}$/.test(result.stateHash) || typeof result.rngState !== "string" || !/^[0-9a-f]{8}$/.test(result.rngState) || !result.state || typeof result.state !== "object" || result.state.tick !== result.tick || !Number.isInteger(result.state.nextEntityId) || !result.state.entities || !result.state.players) throw new Error("Invalid snapshot");
+  if (result.checksum !== undefined && !/^[0-9a-f]{8}$/.test(result.checksum)) throw new Error("Invalid snapshot checksum");
+  if (result.stateHash !== hashGameState(result.state)) throw new Error("Snapshot state hash mismatch");
   return result;
 }
 export type { InputCommand };
