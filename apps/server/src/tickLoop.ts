@@ -18,7 +18,7 @@ export class FixedTickLoop {
   tick(): void {
     for (const event of this.room.drainLifecycleEvents()) this.options.onRoomEvent?.(this.room, event);
     const commands: InputCommand[] = [...this.room.inputs.entries()].sort(([a], [b]) => a - b).flatMap(([id, buffer]) => buffer.drain(this.room.state.tick).map((c) => ({ ...c, playerId: id })));
-    const result = step(this.room.state, commands, { rng: this.room.rng }); this.room.state = result.state; this.room.enqueueSimulationEvents(result.events);
+    const result = step(this.room.state, commands, { rng: this.room.rng, allPlayersReady: this.room.allReady() }); this.room.state = result.state; this.room.enqueueSimulationEvents(result.events);
     this.options.onSnapshot?.(this.room, serializeCanonicalSnapshot(this.room.state, this.room.rng, true));
     const events = this.room.drainSimulationEvents(); if (events.length) this.options.onSimulationEvents?.(this.room, events);
   }

@@ -9,7 +9,11 @@ export function createInitialState(
     tick: 0,
     seed,
     nextEntityId: 1,
+    // Legacy local/headless callers begin immediately; network rooms may set
+    // this to lobby and provide allPlayersReady to enter the state machine.
     phase: "playing",
+    matchPhaseStartTick: 0,
+    wavePhase: "spawning",
     entities: {},
     players: {},
     wave: {

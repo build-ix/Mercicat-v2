@@ -79,12 +79,20 @@ export interface GameState {
   tick: Tick;
   readonly seed: number | string;
   nextEntityId: EntityId;
-  phase: "playing" | "victory" | "defeat";
+  /** Legacy phases remain readable for replay compatibility. */
+  phase: GamePhase;
+  matchPhaseStartTick: Tick;
+  countdownTick?: Tick;
+  wavePhase?: "spawning" | "active" | "complete";
   entities: Record<EntityId, GameEntity>;
   players: Record<PlayerId, EntityId>;
   wave: WaveState;
   score: number;
 }
+
+/** Current phases are the four values below; legacy values remain accepted by the
+ * wire type so older replay/test fixtures can still be decoded. */
+export type GamePhase = "lobby" | "countdown" | "waveActive" | "gameOver" | "playing" | "victory" | "defeat";
 
 export interface InputCommand {
   type: "move" | "fire" | "reload" | "ability" | "pause" | "usePickup";

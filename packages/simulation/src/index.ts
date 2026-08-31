@@ -11,4 +11,5 @@ export * from "./enemies.js";
 export * from "./collision.js";
 export * from "./waves.js";
 export * from "./players.js";
+export * from "./matchPhase.js";
 export { RngStreamFactory } from "@mercicat/shared";

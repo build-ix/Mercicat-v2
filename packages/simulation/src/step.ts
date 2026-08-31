@@ -5,7 +5,8 @@ import { updateEntities, finalizeLifecycle } from "./systems/entitySystem.js";
 import { processCollisions } from "./systems/collisionSystem.js";
 import { applyDamage } from "./systems/damageSystem.js";
 import { spawnEnemies } from "./enemies.js";
-export interface SimulationContext { readonly rng: SeededRandom; }
+import { advanceMatchPhase } from "./matchPhase.js";
+export interface SimulationContext { readonly rng: SeededRandom; readonly allPlayersReady?: boolean; }
 
 // Simulation units are world-units per tick at the canonical TICK_RATE.
 export const PLAYER_SPEED_PER_TICK = 5;
@@ -14,7 +15,11 @@ export const PROJECTILE_SPEED_PER_TICK = 10;
 export function step(previous: GameState, commands: readonly InputCommand[], context: SimulationContext): SimulationResult {
   const state = structuredClone(previous) as GameState;
   const events: SimulationEvent[] = [];
-  if (state.phase !== "playing") return { state, events, stateHash: hashGameState(state) };
+  advanceMatchPhase(state, context.allPlayersReady ?? false);
+  if (state.phase !== "waveActive" && state.phase !== "playing") {
+    state.tick += 1;
+    return { state, events, stateHash: hashGameState(state) };
+  }
   const tickCommands = commands.filter((c) => c.tick === state.tick).sort(compareCommands);
   applyCommands(state, tickCommands, events);
   if (state.wave.spawnedForWave === 0 && !state.wave.waveComplete) spawnEnemies(state, context.rng, state.wave.currentWave, events);
@@ -59,9 +64,9 @@ function applyCommands(state: GameState, commands: readonly InputCommand[], even
   }
 }
 function handlePlayerDefeat(state: GameState, events: SimulationEvent[]): boolean {
-  if (state.phase !== "playing") return true;
+  if (state.phase !== "waveActive" && state.phase !== "playing") return true;
   if (Object.values(state.entities).some((entity) => entity.kind === "player" && entity.health <= 0)) {
-    state.phase = "defeat";
+    state.phase = state.phase === "playing" ? "defeat" : "gameOver";
     events.push({ type: "matchDefeated", tick: state.tick, wave: state.wave.currentWave });
     return true;
   }
@@ -106,7 +111,7 @@ function updateWaveState(state: GameState, rng: SeededRandom, events: Simulation
   state.wave.defeatedForWave = state.wave.spawnedForWave;
   events.push({ type: "waveCompleted", tick: state.tick, wave: state.wave.currentWave });
   if (state.wave.currentWave >= state.wave.totalWaves) {
-    state.wave.matchComplete = true; state.phase = "victory";
+    state.wave.matchComplete = true; state.phase = state.phase === "playing" ? "victory" : "gameOver";
     events.push({ type: "matchCompleted", tick: state.tick, wave: state.wave.currentWave });
   } else {
     state.wave.currentWave += 1; state.wave.spawnedForWave = 0; state.wave.defeatedForWave = 0; state.wave.waveComplete = false;

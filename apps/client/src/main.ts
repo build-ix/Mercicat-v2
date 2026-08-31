@@ -89,8 +89,8 @@ function sampleInput(): InputCommand[] {
 function updateHud(context: ReturnType<typeof gameStateToRender>): void {
   const health = context.localPlayer?.health ?? 0;
   tickValue.textContent = String(currentState!.tick);
-  status.textContent = context.hud.phase === "playing" ? "Playing" : context.hud.phase;
-  status.style.color = context.hud.phase === "playing" ? "#00ff00" : "#ff8080";
+  status.textContent = context.hud.phase === "waveActive" ? "Playing" : context.hud.phase;
+  status.style.color = context.hud.phase === "waveActive" ? "#00ff00" : "#ff8080";
   fpsValue.textContent = String(Math.round(fps));
   waveValue.textContent = String(context.hud.wave);
   playersValue.textContent = String(Object.keys(currentState?.players ?? {}).length);
@@ -98,10 +98,10 @@ function updateHud(context: ReturnType<typeof gameStateToRender>): void {
   healthValue.textContent = `${Math.ceil(health)} / 100`;
   scoreValue.textContent = String(context.hud.score);
   phaseValue.textContent = context.hud.phase;
-  if (context.hud.phase === "playing") {
+  if (context.hud.phase === "waveActive") {
     endScreen.classList.remove("visible");
   } else {
-    endMessage.textContent = context.hud.phase === "victory" ? "Victory! Wave 5 Complete" : "Defeated! Enemies Won";
+    endMessage.textContent = context.hud.phase === "gameOver" ? "Game Over" : "Match starting...";
     endScreen.classList.add("visible");
   }
 }

@@ -2,9 +2,9 @@ import type { GameState, SimulationEvent } from "@mercicat/shared";
 
 /** Legacy entry point retained for callers; players now have one life. */
 export function updatePlayerRespawns(state: GameState, _rng: unknown, events: SimulationEvent[]): void {
-  if (state.phase !== "playing") return;
+  if (state.phase !== "waveActive") return;
   if (Object.values(state.entities).some((entity) => entity.kind === "player" && entity.health <= 0)) {
-    state.phase = "defeat";
+    state.phase = "gameOver";
     events.push({ type: "matchDefeated", tick: state.tick, wave: state.wave.currentWave });
   }
 }
