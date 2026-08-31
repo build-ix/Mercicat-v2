@@ -17,7 +17,7 @@ export function advanceMatchPhase(state: GameState, allPlayersReady: boolean): v
     state.countdownTick--;
     if (state.countdownTick === 0) {
       state.phase = "waveActive";
-      state.wavePhase = "active";
+      state.wavePhase = "waveActive";
     }
   }
 

@@ -6,6 +6,7 @@ import { processCollisions } from "./systems/collisionSystem.js";
 import { applyDamage } from "./systems/damageSystem.js";
 import { spawnEnemies } from "./enemies.js";
 import { advanceMatchPhase } from "./matchPhase.js";
+import { advanceWavePhase } from "./wavePhase.js";
 export interface SimulationContext { readonly rng: SeededRandom; readonly allPlayersReady?: boolean; }
 
 // Simulation units are world-units per tick at the canonical TICK_RATE.
@@ -16,22 +17,21 @@ export function step(previous: GameState, commands: readonly InputCommand[], con
   const state = structuredClone(previous) as GameState;
   const events: SimulationEvent[] = [];
   advanceMatchPhase(state, context.allPlayersReady ?? false);
+  advanceWavePhase(state, context.allPlayersReady ?? false, events);
   if (state.phase !== "waveActive" && state.phase !== "playing") {
     state.tick += 1;
     return { state, events, stateHash: hashGameState(state) };
   }
   const tickCommands = commands.filter((c) => c.tick === state.tick).sort(compareCommands);
   applyCommands(state, tickCommands, events);
-  if (state.wave.spawnedForWave === 0 && !state.wave.waveComplete) spawnEnemies(state, context.rng, state.wave.currentWave, events);
+  if (state.wavePhase === "waveActive" && state.wave.spawnedForWave === 0 && !state.wave.waveComplete) {
+    spawnEnemies(state, context.rng, state.wave.currentWave, events);
+    events.push({ type: "waveStarted", tick: state.tick, wave: state.wave.currentWave });
+  }
   updateEnemyAI(state, context.rng, events);
   updateEntities(state, context.rng, events);
   applyDamage(state, processCollisions(state), events);
-  if (handlePlayerDefeat(state, events)) {
-    state.tick += 1;
-    return { state, events, stateHash: hashGameState(state) };
-  }
   finalizeLifecycle(state, events);
-  updateWaveState(state, context.rng, events);
 
   state.tick += 1;
   return { state, events, stateHash: hashGameState(state) };
@@ -45,11 +45,11 @@ function applyCommands(state: GameState, commands: readonly InputCommand[], even
   // the previous velocity active after a key is released.
   for (const entityId of Object.values(state.players)) {
     const player = state.entities[entityId];
-    if (player?.kind === "player" && player.lifecycle === "active") player.velocity = { x: 0, y: 0 };
+    if (player?.kind === "player" && player.lifecycle === "active" && !(player as import("@mercicat/shared").PlayerEntity).downed) player.velocity = { x: 0, y: 0 };
   }
   for (const command of commands) {
     const id = state.players[command.playerId]; const player = state.entities[id];
-    if (!player || player.lifecycle !== "active" || player.kind !== "player") continue;
+    if (!player || player.lifecycle !== "active" || player.kind !== "player" || (player as import("@mercicat/shared").PlayerEntity).downed || player.health <= 0) continue;
     const direction = commandDirection(command);
     if (command.type === "move") player.velocity = { x: clamp(direction.x, -1, 1) * PLAYER_SPEED_PER_TICK, y: clamp(direction.y, -1, 1) * PLAYER_SPEED_PER_TICK };
     if (command.type === "fire" && (player as import("@mercicat/shared").PlayerEntity).fireCooldownTicks === 0) {
@@ -62,15 +62,6 @@ function applyCommands(state: GameState, commands: readonly InputCommand[], even
       events.push({ type: "entitySpawned", tick: state.tick, entityId: id, kind: "projectile" });
     }
   }
-}
-function handlePlayerDefeat(state: GameState, events: SimulationEvent[]): boolean {
-  if (state.phase !== "waveActive" && state.phase !== "playing") return true;
-  if (Object.values(state.entities).some((entity) => entity.kind === "player" && entity.health <= 0)) {
-    state.phase = state.phase === "playing" ? "defeat" : "gameOver";
-    events.push({ type: "matchDefeated", tick: state.tick, wave: state.wave.currentWave });
-    return true;
-  }
-  return false;
 }
 
 const ENEMY_SPEED_PER_TICK = 2.5;
@@ -104,20 +95,6 @@ function updateEnemyAI(state: GameState, rng: SeededRandom, events: SimulationEv
   }
 }
 
-function updateWaveState(state: GameState, rng: SeededRandom, events: SimulationEvent[]): void {
-  const enemies = Object.values(state.entities).filter((e) => e.kind === "enemy" && e.lifecycle === "active");
-  if (enemies.length !== 0 || state.wave.spawnedForWave === 0 || state.wave.waveComplete) return;
-  state.wave.waveComplete = true;
-  state.wave.defeatedForWave = state.wave.spawnedForWave;
-  events.push({ type: "waveCompleted", tick: state.tick, wave: state.wave.currentWave });
-  if (state.wave.currentWave >= state.wave.totalWaves) {
-    state.wave.matchComplete = true; state.phase = state.phase === "playing" ? "victory" : "gameOver";
-    events.push({ type: "matchCompleted", tick: state.tick, wave: state.wave.currentWave });
-  } else {
-    state.wave.currentWave += 1; state.wave.spawnedForWave = 0; state.wave.defeatedForWave = 0; state.wave.waveComplete = false;
-    spawnEnemies(state, rng, state.wave.currentWave, events);
-  }
-}
 
 function clamp(value: number, min: number, max: number): number { return Math.max(min, Math.min(max, value)); }
 function commandDirection(command: InputCommand): { x: number; y: number } {

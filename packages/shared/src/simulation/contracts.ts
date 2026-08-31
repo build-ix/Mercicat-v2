@@ -35,6 +35,8 @@ export interface PlayerEntity extends BaseEntity {
   fireCooldownTicks: number;
   deadSinceTick?: Tick;
   respawnCount?: number;
+  /** A defeated player is downed for the remainder of the wave. */
+  downed?: boolean;
 }
 
 export interface EnemyEntity extends BaseEntity {
@@ -83,19 +85,25 @@ export interface GameState {
   phase: GamePhase;
   matchPhaseStartTick: Tick;
   countdownTick?: Tick;
-  wavePhase?: "spawning" | "active" | "complete";
+  waveTimerTicks: number;
+  waveDurationTicks: number;
+  wavePhase: WavePhase;
   entities: Record<EntityId, GameEntity>;
   players: Record<PlayerId, EntityId>;
   wave: WaveState;
+  /** Per-player/shared deterministic reward ledger, populated at wave end. */
+  waveRewards: Record<number, { xp: number; materials: number; loot: string[] }>;
   score: number;
 }
 
 /** Current phases are the four values below; legacy values remain accepted by the
  * wire type so older replay/test fixtures can still be decoded. */
+export type WavePhase = "waveActive" | "waveEnding" | "intermission" | "nextWaveReady";
+
 export type GamePhase = "lobby" | "countdown" | "waveActive" | "gameOver" | "playing" | "victory" | "defeat";
 
 export interface InputCommand {
-  type: "move" | "fire" | "reload" | "ability" | "pause" | "usePickup";
+  type: "move" | "fire" | "reload" | "ability" | "pause" | "usePickup" | "readyForNextWave";
   tick: Tick;
   playerId: PlayerId;
   moveX?: number;
@@ -110,6 +118,11 @@ export interface InputCommand {
 }
 
 export type SimulationEvent =
+  | {
+      type: "waveWarning" | "waveEnding" | "waveEnded" | "intermissionStarted";
+      tick: Tick;
+      wave: number;
+    }
   | {
       type: "entitySpawned";
       tick: Tick;

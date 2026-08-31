@@ -1,4 +1,5 @@
 import { GameState, PlayerId } from "@mercicat/shared";
+import { waveDurationTicks } from "./wavePhase.js";
 
 export function createInitialState(
   seed: number | string,
@@ -13,7 +14,9 @@ export function createInitialState(
     // this to lobby and provide allPlayersReady to enter the state machine.
     phase: "playing",
     matchPhaseStartTick: 0,
-    wavePhase: "spawning",
+    waveTimerTicks: 0,
+    waveDurationTicks: waveDurationTicks(1),
+    wavePhase: "waveActive",
     entities: {},
     players: {},
     wave: {
@@ -24,6 +27,7 @@ export function createInitialState(
       waveComplete: false,
       matchComplete: false
     },
+    waveRewards: {},
     score: 0
   };
 

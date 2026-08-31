@@ -17,7 +17,7 @@ export const WireInputSchema = z.object({
   sequence: z.number().int().nonnegative(),
   tick: z.number().int().nonnegative(),
   command: z.object({
-    type: z.enum(["move", "fire", "reload", "ability", "pause", "usePickup"]),
+    type: z.enum(["move", "fire", "reload", "ability", "pause", "usePickup", "readyForNextWave"]),
     tick: z.number().int().nonnegative(),
     playerId: z.number().int().nonnegative(),
     moveX: z.number().finite().optional(), moveY: z.number().finite().optional(),
