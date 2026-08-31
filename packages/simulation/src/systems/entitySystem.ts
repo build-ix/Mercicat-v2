@@ -52,7 +52,10 @@ export function markDespawned(
 /** Remove terminal entities only after all systems have observed them. */
 export function finalizeLifecycle(state: GameState, events: SimulationEvent[]): void {
   for (const entity of Object.values(state.entities).sort((a, b) => a.id - b.id)) {
-    if (entity.lifecycle === "dead" && entity.kind !== "player") markDespawned(state, entity.id, "dead", events);
+    if (entity.lifecycle === "dead" && entity.kind !== "player") {
+      if (entity.kind === "enemy") state.score += 10;
+      markDespawned(state, entity.id, "dead", events);
+    }
   }
   for (const entity of Object.values(state.entities)) {
     if (entity.lifecycle === "despawned") delete state.entities[entity.id];
