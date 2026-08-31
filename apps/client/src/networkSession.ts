@@ -2,8 +2,9 @@ import { io, type Socket } from "socket.io-client";
 import type { GameState, InputCommand, NetworkSnapshot, PlayerId, SequencedInput } from "@mercicat/shared";
 import { SeededRandom, TICK_MS } from "@mercicat/shared";
 import { EVENTS, PROTOCOL_VERSION, deserializeSnapshot } from "@mercicat/protocol";
-import { step } from "@mercicat/simulation";
+import { step, hashGameState } from "@mercicat/simulation";
 import { InputHistory } from "./prediction";
+import { replayInputs } from "./inputReplayer";
 import { SnapshotBuffer, interpolateSnapshots } from "./snapshotBuffer";
 
 export interface NetworkSessionOptions {
@@ -17,6 +18,12 @@ export interface NetworkSessionOptions {
   useAuthoritativeOnly?: boolean;
 }
 export type NetworkSessionStatus = "disconnected" | "connecting" | "connected" | "joined";
+
+export interface PredictionDivergence {
+  readonly tick: number;
+  readonly predictedHash: string;
+  readonly authoritativeHash: string;
+}
 
 /** Client transport plus the presentation-only prediction/reconciliation layer. */
 export class NetworkSession {
@@ -35,6 +42,10 @@ export class NetworkSession {
   acknowledgedThrough = -1;
   predictionErrors = 0;
   lastPredictionError = 0;
+  reconciliationCount = 0;
+  maxPredictionErrorTicks = 0;
+  readonly divergenceEvents: PredictionDivergence[] = [];
+  private divergenceStartedAt: number | null = null;
   readonly history = new InputHistory();
   readonly snapshots = new SnapshotBuffer();
   private readonly useAuthoritativeOnly: boolean;
@@ -90,18 +101,33 @@ export class NetworkSession {
     if (snapshot.tick < this.lastSnapshotTick) return;
     this.lastSnapshotTick = snapshot.tick;
     const before = this.current;
+    const predictedHash = before && before.tick === snapshot.tick ? hashGameState(before) : null;
+    const hashMismatch = predictedHash !== null && predictedHash !== snapshot.stateHash;
+    if (hashMismatch) {
+      this.divergenceStartedAt ??= snapshot.tick;
+      this.divergenceEvents.push({ tick: snapshot.tick, predictedHash, authoritativeHash: snapshot.stateHash });
+      if (this.divergenceEvents.length > 128) this.divergenceEvents.shift();
+    }
     this.authoritative = structuredClone(snapshot.state);
-    this.predictionRng = SeededRandom.deserialize(snapshot.rngState);
-    let rebuilt = structuredClone(snapshot.state);
     const pending = this.history.unacknowledged(this.acknowledgedThrough);
-    for (const input of pending) rebuilt = step(rebuilt, [input.command], { rng: this.predictionRng }).state;
+    const rebuilt = replayInputs(snapshot, pending).state;
+    this.predictionRng = SeededRandom.deserialize(snapshot.rngState);
     this.current = rebuilt;
     this.render = structuredClone(rebuilt);
     const localId = this.playerId;
     const oldPlayer = before && localId !== null ? before.entities[before.players[localId]] : undefined;
     const newPlayer = localId !== null ? rebuilt.entities[rebuilt.players[localId]] : undefined;
     this.lastPredictionError = oldPlayer && newPlayer ? Math.hypot(oldPlayer.position.x - newPlayer.position.x, oldPlayer.position.y - newPlayer.position.y) : 0;
-    if (this.lastPredictionError > 0.01) this.predictionErrors++;
+    const corrected = before !== null && (hashMismatch || this.lastPredictionError > 0.01 || before.tick !== rebuilt.tick);
+    if (corrected) {
+      this.predictionErrors++;
+      this.reconciliationCount++;
+      this.divergenceStartedAt ??= snapshot.tick;
+    }
+    if (this.divergenceStartedAt !== null) {
+      this.maxPredictionErrorTicks = Math.max(this.maxPredictionErrorTicks, snapshot.tick - this.divergenceStartedAt);
+      if (hashGameState(rebuilt) === snapshot.stateHash && pending.length === 0) this.divergenceStartedAt = null;
+    }
   }
 
   send(command: Omit<InputCommand, "playerId" | "tick">, tick: number): void {
@@ -149,6 +175,8 @@ export class NetworkSession {
   reset(): void {
     this.snapshots.lastAppliedTick = -1; this.current = null; this.authoritative = null; this.render = null;
     this.lastSnapshotTick = -1; this.acknowledgedThrough = -1; this.history.clear();
+    this.predictionErrors = 0; this.reconciliationCount = 0; this.maxPredictionErrorTicks = 0;
+    this.divergenceEvents.length = 0; this.divergenceStartedAt = null; this.lastPredictionError = 0;
   }
   disconnect(): void { this.socket?.disconnect(); this.socket = null; this.playerId = null; this.setStatus("disconnected"); }
 }

@@ -26,7 +26,7 @@ const session = new NetworkSession({
   roomId: new URLSearchParams(window.location.search).get("room") ?? "default",
   onStatus: (value) => { status.textContent = value === "joined" ? "Playing" : value; },
   onError: (error) => console.warn("Network protocol error", error),
-  useAuthoritativeOnly: true, // Phase 2A: render server state only
+  useAuthoritativeOnly: false, // Phase 2B: render the locally predicted state
 });
 session.connect();
 const gameRenderer = new GameRenderer(scene);
