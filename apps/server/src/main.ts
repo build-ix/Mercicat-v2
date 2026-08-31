@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { Server } from "socket.io";
-import { EVENTS, PROTOCOL_VERSION, validateWireInput } from "@mercicat/protocol";
+import { EVENTS, PROTOCOL_VERSION, validateWireInput, type EventMessage } from "@mercicat/protocol";
 import { TICK_RATE } from "@mercicat/shared";
 import { RoomManager } from "./roomManager.js";
 import { FixedTickLoop } from "./tickLoop.js";
@@ -31,6 +31,7 @@ io.on("connection", (socket) => {
           }
         },
         onRoomEvent: (r, event) => io.to(r.id).emit(EVENTS.room, { roomId: r.id, event })
+        ,onSimulationEvents: (r, events) => { for (const event of events) { const message: EventMessage = { schemaVersion: 1, sequence: r.allocateEventSequence(), event }; io.to(r.id).emit(EVENTS.event, message); } }
       });
       loops.set(roomId, loop); loop.start();
     }
