@@ -1,8 +1,8 @@
 import * as THREE from "three";
-import { createInitialState, step } from "@mercicat/simulation";
-import { SeededRandom, TICK_RATE } from "@mercicat/shared";
-import type { GameState, InputCommand } from "@mercicat/shared";
+import { TICK_RATE } from "@mercicat/shared";
+import type { InputCommand } from "@mercicat/shared";
 import { GameRenderer, gameStateToRender } from "@mercicat/client";
+import { LocalSession } from "./session";
 
 const LOCAL_PLAYER_ID = 1;
 const SEED = 12345;
@@ -20,8 +20,7 @@ scene.add(directionalLight);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: 0x2a2a30 }));
 scene.add(ground);
 
-let rng = new SeededRandom(SEED);
-let state: GameState = createInitialState(SEED, [LOCAL_PLAYER_ID]);
+const session = new LocalSession(SEED, [LOCAL_PLAYER_ID]);
 const gameRenderer = new GameRenderer(scene);
 const keys = new Set<string>();
 let mouseWorldPos = { x: 0, y: 0 };
@@ -63,12 +62,12 @@ function sampleInput(): InputCommand[] {
   const length = Math.hypot(dx, dy);
   // Always send a movement state sample, including zero, so key release is
   // represented explicitly at the simulation tick.
-  commands.push({ type: "move", tick: state.tick, playerId: LOCAL_PLAYER_ID, direction: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 } });
+  commands.push({ type: "move", tick: session.state.tick, playerId: LOCAL_PLAYER_ID, direction: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 } });
   if (keys.has(" ")) {
-    const player = state.entities[state.players[LOCAL_PLAYER_ID]];
+    const player = session.state.entities[session.state.players[LOCAL_PLAYER_ID]];
     if (player?.kind === "player") {
       const angle = Math.atan2(mouseWorldPos.y - player.position.y, mouseWorldPos.x - player.position.x);
-      commands.push({ type: "fire", tick: state.tick, playerId: LOCAL_PLAYER_ID, direction: { x: Math.cos(angle), y: Math.sin(angle) } });
+      commands.push({ type: "fire", tick: session.state.tick, playerId: LOCAL_PLAYER_ID, direction: { x: Math.cos(angle), y: Math.sin(angle) } });
     }
   }
   return commands;
@@ -76,7 +75,7 @@ function sampleInput(): InputCommand[] {
 
 function updateHud(context: ReturnType<typeof gameStateToRender>): void {
   const health = context.localPlayer?.health ?? 0;
-  tickValue.textContent = String(state.tick);
+  tickValue.textContent = String(session.state.tick);
   status.textContent = context.hud.phase === "playing" ? "Playing" : context.hud.phase;
   status.style.color = context.hud.phase === "playing" ? "#00ff00" : "#ff8080";
   fpsValue.textContent = "60";
@@ -95,8 +94,7 @@ function updateHud(context: ReturnType<typeof gameStateToRender>): void {
 }
 
 function restart(): void {
-  state = createInitialState(SEED, [LOCAL_PLAYER_ID]);
-  rng = new SeededRandom(SEED);
+  session.reset();
   accumulator = 0;
   previousTime = performance.now();
   keys.clear();
@@ -128,13 +126,13 @@ function frame(now: number): void {
   previousTime = now;
   accumulator += delta;
   while (accumulator >= tickDuration) {
-    state = step(state, sampleInput(), { rng }).state;
+    session.step(sampleInput());
     accumulator -= tickDuration;
   }
-  const context = gameStateToRender(state, LOCAL_PLAYER_ID);
+  const context = gameStateToRender(session.state, LOCAL_PLAYER_ID);
   gameRenderer.render(context);
   updateHud(context);
-  const player = state.entities[state.players[LOCAL_PLAYER_ID]];
+  const player = session.state.entities[session.state.players[LOCAL_PLAYER_ID]];
   if (player?.kind === "player") {
     camera.position.x = player.position.x;
     camera.position.y = player.position.y;
