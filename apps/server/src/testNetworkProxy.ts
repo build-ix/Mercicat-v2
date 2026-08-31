@@ -26,6 +26,13 @@ export class DelayedSocket {
     delay: number;
     timestamp: number;
   }> = [];
+  private inboundListeners = new Map<
+    string,
+    Array<{
+      original: (...args: unknown[]) => void;
+      delayed: (...args: unknown[]) => void;
+    }>
+  >();
   private rng: SeededRandom;
 
   constructor(socket: SocketType, config: NetworkConditionConfig = {}) {
@@ -78,7 +85,7 @@ export class DelayedSocket {
         this.msgQueue.splice(i, 1);
         this.socket.emit(msg.event, msg.data);
         console.log(
-          `[Network] Delivered after ${now - msg.timestamp}ms: ${msg.event}`
+          `[Network] Delivered outbound after ${now - msg.timestamp}ms: ${msg.event}`
         );
       }
     }
@@ -90,22 +97,87 @@ export class DelayedSocket {
   }
 
   /**
+   * Schedule inbound event delivery after simulated latency
+   */
+  private scheduleInbound(
+    event: string,
+    callback: (...args: unknown[]) => void,
+    args: unknown[]
+  ): void {
+    if (this.rng.next() < this.config.lossRate) {
+      console.log(`[Network] Dropped inbound message: ${event}`);
+      return;
+    }
+
+    const jitter = this.rng.next() * 10 - 5; // ±5ms jitter
+    const delay = Math.max(0, this.config.latencyMs + jitter);
+
+    setTimeout(() => {
+      callback(...args);
+      console.log(`[Network] Delivered inbound after ${delay}ms: ${event}`);
+    }, delay);
+  }
+
+  /**
+   * Register inbound listener wrapper for cleanup tracking
+   */
+  private registerInboundListener(
+    event: string,
+    original: (...args: unknown[]) => void,
+    delayed: (...args: unknown[]) => void
+  ): void {
+    const listeners = this.inboundListeners.get(event) ?? [];
+    listeners.push({ original, delayed });
+    this.inboundListeners.set(event, listeners);
+  }
+
+  /**
    * Passthrough for other socket methods
    */
-  on(event: string, callback: (...args: unknown[]) => void): SocketType {
-    return this.socket.on(event, callback);
+  on(event: string, callback: (...args: any[]) => void): SocketType {
+    const delayedCallback = (...args: any[]) => {
+      this.scheduleInbound(event, callback, args);
+    };
+
+    this.registerInboundListener(event, callback, delayedCallback);
+    return this.socket.on(event, delayedCallback);
   }
 
-  off(event: string, callback?: (...args: unknown[]) => void): SocketType {
-    return this.socket.off(event, callback);
+  off(event: string, callback?: (...args: any[]) => void): SocketType {
+    if (!callback) {
+      this.inboundListeners.delete(event);
+      return this.socket.off(event);
+    }
+
+    const listeners = this.inboundListeners.get(event) ?? [];
+    const matching = listeners.filter((entry) => entry.original === callback);
+
+    for (const entry of matching) {
+      this.socket.off(event, entry.delayed);
+    }
+
+    const remaining = listeners.filter((entry) => entry.original !== callback);
+    if (remaining.length > 0) {
+      this.inboundListeners.set(event, remaining);
+    } else {
+      this.inboundListeners.delete(event);
+    }
+
+    return this.socket;
   }
 
-  once(event: string, callback: (...args: unknown[]) => void): SocketType {
-    return this.socket.once(event, callback);
+  once(event: string, callback: (...args: any[]) => void): SocketType {
+    const delayedCallback = (...args: any[]) => {
+      this.scheduleInbound(event, callback, args);
+    };
+
+    this.registerInboundListener(event, callback, delayedCallback);
+    return this.socket.once(event, delayedCallback);
   }
 
   disconnect(): SocketType {
     this.msgQueue = [];
+    this.inboundListeners.clear();
     return this.socket.disconnect();
   }
 
