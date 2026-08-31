@@ -1,27 +1,27 @@
 import * as THREE from "three";
-import { io, Socket } from "socket.io-client";
+import { createInitialState, step as stepSimulation } from "@mercicat/simulation";
+import { SeededRandom, TICK_RATE } from "@mercicat/shared";
+import type { GameState, InputCommand } from "@mercicat/shared";
 
+// Canvas setup
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setClearColor(0x1a1a1e);
 
-const scene = new THREE.Scene();
+// Camera (top-down orthographic for arena)
 const camera = new THREE.OrthographicCamera(
-  -960 / 2,
-  960 / 2,
-  640 / 2,
-  -640 / 2,
+  -window.innerWidth / 2,
+  window.innerWidth / 2,
+  window.innerHeight / 2,
+  -window.innerHeight / 2,
   0.1,
   1000
 );
 camera.position.z = 10;
 
-// Ground
-const groundGeometry = new THREE.PlaneGeometry(1920, 1280);
-const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a30 });
-const ground = new THREE.Mesh(groundGeometry, groundMaterial);
-scene.add(ground);
+// Scene
+const scene = new THREE.Scene();
 
 // Lighting
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
@@ -30,194 +30,201 @@ const directionalLight = new THREE.DirectionalLight(0xffffff, 0.6);
 directionalLight.position.set(10, 10, 10);
 scene.add(directionalLight);
 
+// Ground
+const groundGeometry = new THREE.PlaneGeometry(2000, 2000);
+const groundMaterial = new THREE.MeshStandardMaterial({ color: 0x2a2a30 });
+const ground = new THREE.Mesh(groundGeometry, groundMaterial);
+scene.add(ground);
+
 // Game state
-interface GameEntity {
-  mesh: THREE.Mesh;
-  health?: number;
-  maxHealth?: number;
-}
+const rng = new SeededRandom(12345); // Deterministic for local testing
+let gameState: GameState = createInitialState(12345, [1]); // Seed 1 = player 1
 
-const entities: Map<string, GameEntity> = new Map();
-let socket: Socket | null = null;
-let playerId: string | null = null;
-let matchId: string = "default";
-let lastSnapshot: any = null;
+// Render primitives
+const meshes = new Map<number, THREE.Mesh>();
 
-// Input state
+// Input state (sampled at tick boundary)
 const keys = new Set<string>();
+let mouseWorldPos = { x: 0, y: 0 }; // Relative to arena center
+
 window.addEventListener("keydown", (e) => {
   keys.add(e.key.toLowerCase());
 });
+
 window.addEventListener("keyup", (e) => {
   keys.delete(e.key.toLowerCase());
 });
 
-// Mouse state for attack direction
-let mouseX = 0;
-let mouseY = 0;
 canvas.addEventListener("mousemove", (e) => {
   const rect = canvas.getBoundingClientRect();
-  mouseX = (e.clientX - rect.left) / rect.width;
-  mouseY = (e.clientY - rect.top) / rect.height;
+  const screenX = e.clientX - rect.left;
+  const screenY = e.clientY - rect.top;
+
+  // Convert screen coords to world coords (orthographic camera)
+  const worldX = (screenX / rect.width) * window.innerWidth - window.innerWidth / 2;
+  const worldY = (screenY / rect.height) * window.innerHeight - window.innerHeight / 2;
+
+  mouseWorldPos = { x: worldX, y: worldY };
 });
 
-// Connect to server
-function connect() {
-  socket = io("http://localhost:3001");
+// Game loop parameters
+const FRAME_TIME = 1000 / TICK_RATE; // ms
 
-  socket.on("connect", () => {
-    console.log("Connected to server");
-    updateUI("status", "Connecting to match...");
-    socket!.emit("join_match", { matchId });
+let accumulator = 0;
+let lastTime = performance.now();
+
+/**
+ * Create or update visual representation of game state.
+ */
+function renderGameState() {
+  // Clear previous meshes
+  meshes.forEach((mesh) => {
+    scene.remove(mesh);
   });
+  meshes.clear();
 
-  socket.on("joined", (data) => {
-    playerId = data.playerId;
-    console.log(`Joined as ${playerId}`);
-    updateUI("status", "Connected");
-  });
+  // Render entities
+  for (const [entityId, entity] of Object.entries(gameState.entities)) {
+    const eid = parseInt(entityId);
+    let geometry: THREE.BufferGeometry;
+    let color: number;
 
-  socket.on("player_joined", (data) => {
-    console.log(`Player joined. Total: ${data.count}`);
-  });
-
-  socket.on("snapshot", (snapshot) => {
-    lastSnapshot = snapshot;
-    updateUI("tick", String(snapshot.tick));
-    updateUI("wave", String(snapshot.wave));
-    updateUI("players", String(snapshot.players.length));
-    updateUI("enemies", String(snapshot.enemies.length));
-
-    // Update entities
-    renderSnapshot(snapshot);
-  });
-
-  socket.on("disconnect", () => {
-    updateUI("status", "Disconnected");
-  });
-}
-
-function renderSnapshot(snapshot: any) {
-  // Update players
-  for (const player of snapshot.players) {
-    if (!entities.has(player.id)) {
-      const geom = new THREE.BoxGeometry(30, 60, 30);
-      const mat = new THREE.MeshStandardMaterial({
-        color: player.id === playerId ? 0x4080f0 : 0xa0a0a0,
-      });
-      const mesh = new THREE.Mesh(geom, mat);
-      scene.add(mesh);
-      entities.set(player.id, { mesh, health: player.health, maxHealth: player.maxHealth });
-    }
-
-    const entity = entities.get(player.id)!;
-    entity.mesh.position.set(player.position.x, player.position.y, 0);
-    entity.mesh.visible = player.alive;
-    entity.health = player.health;
-  }
-
-  // Update enemies
-  for (const enemy of snapshot.enemies) {
-    if (!entities.has(enemy.id)) {
-      const geom = new THREE.BoxGeometry(25, 50, 25);
-      const mat = new THREE.MeshStandardMaterial({ color: 0xff6040 });
-      const mesh = new THREE.Mesh(geom, mat);
-      scene.add(mesh);
-      entities.set(enemy.id, { mesh, health: enemy.health, maxHealth: enemy.maxHealth });
-    }
-
-    const entity = entities.get(enemy.id)!;
-    entity.mesh.position.set(enemy.position.x, enemy.position.y, 0);
-    entity.mesh.visible = enemy.alive;
-    entity.health = enemy.health;
-  }
-
-  // Draw projectiles as small spheres
-  for (const projectile of snapshot.projectiles) {
-    if (!entities.has(projectile.id)) {
-      const geom = new THREE.SphereGeometry(projectile.radius, 8, 8);
-      const mat = new THREE.MeshStandardMaterial({ color: 0xffff00 });
-      const mesh = new THREE.Mesh(geom, mat);
-      scene.add(mesh);
-      entities.set(projectile.id, { mesh });
-    }
-
-    const entity = entities.get(projectile.id)!;
-    entity.mesh.position.set(projectile.position.x, projectile.position.y, 1);
-  }
-
-  // Remove dead entities
-  for (const [id, entity] of entities) {
-    const exists =
-      snapshot.players.find((p: any) => p.id === id) ||
-      snapshot.enemies.find((e: any) => e.id === id) ||
-      snapshot.projectiles.find((p: any) => p.id === id);
-
-    if (!exists) {
-      scene.remove(entity.mesh);
-      entities.delete(id);
-    }
-  }
-}
-
-function updateUI(id: string, text: string) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = text;
-}
-
-// Main loop
-let frameCount = 0;
-let lastTime = Date.now();
-
-function animate() {
-  requestAnimationFrame(animate);
-
-  // Send input every frame
-  if (socket && playerId) {
-    let moveDirection = { x: 0, y: 0 };
-
-    if (keys.has("w") || keys.has("arrowup")) moveDirection.y += 1;
-    if (keys.has("s") || keys.has("arrowdown")) moveDirection.y -= 1;
-    if (keys.has("a") || keys.has("arrowleft")) moveDirection.x -= 1;
-    if (keys.has("d") || keys.has("arrowright")) moveDirection.x += 1;
-
-    // Normalize
-    const len = Math.sqrt(moveDirection.x ** 2 + moveDirection.y ** 2);
-    if (len > 0) {
-      moveDirection.x /= len;
-      moveDirection.y /= len;
-    }
-
-    // Attack towards mouse
-    const centerX = 0.5;
-    const centerY = 0.5;
-    let attackDirection = { x: mouseX - centerX, y: centerY - mouseY };
-    const alen = Math.sqrt(attackDirection.x ** 2 + attackDirection.y ** 2);
-    if (alen > 0.1) {
-      attackDirection.x /= alen;
-      attackDirection.y /= alen;
+    if (entity.kind === "player") {
+      geometry = new THREE.CircleGeometry(entity.radius, 16);
+      color = 0xff6b35; // Orange
+    } else if (entity.kind === "enemy") {
+      geometry = new THREE.CircleGeometry(entity.radius, 16);
+      color = 0xf72585; // Pink
+    } else if (entity.kind === "projectile") {
+      geometry = new THREE.CircleGeometry(entity.radius, 8);
+      color = 0xffd700; // Gold
     } else {
-      attackDirection = { x: 0, y: 0 };
+      continue; // Skip other entity types for now
     }
 
-    socket.emit("input", { moveDirection, attackDirection });
+    const material = new THREE.MeshStandardMaterial({
+      color,
+      emissive: entity.lifecycle === "dead" ? 0xff0000 : 0x000000,
+    });
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.x = entity.position.x;
+    mesh.position.y = entity.position.y;
+    mesh.position.z = entity.kind === "projectile" ? 0.5 : 0; // Projectiles on top
+
+    scene.add(mesh);
+    meshes.set(eid, mesh);
+  }
+}
+
+/**
+ * Sample input at tick boundary (not every frame).
+ * Returns input commands for the current tick.
+ */
+function sampleInput(): InputCommand[] {
+  const commands: InputCommand[] = [];
+
+  // Find player entity ID (for now assume first player at playerId 1)
+  const playerEntityId = gameState.players[1]; // Player 1's entity ID
+  if (playerEntityId === undefined) return commands;
+
+  // WASD movement
+  let moveX = 0;
+  let moveY = 0;
+
+  if (keys.has("w")) moveY += 1;
+  if (keys.has("s")) moveY -= 1;
+  if (keys.has("a")) moveX -= 1;
+  if (keys.has("d")) moveX += 1;
+
+  // Normalize diagonal movement
+  const moveLen = Math.sqrt(moveX * moveX + moveY * moveY);
+  if (moveLen > 0) {
+    moveX /= moveLen;
+    moveY /= moveLen;
+  }
+
+  // Apply movement if any
+  if (moveX !== 0 || moveY !== 0) {
+    commands.push({
+      tick: gameState.tick,
+      playerId: 1,
+      entityId: playerEntityId,
+      action: "move",
+      data: { x: moveX, y: moveY },
+    } as any); // TODO: proper type
+  }
+
+  // Fire direction (toward mouse)
+  const player = gameState.entities[playerEntityId];
+  if (player) {
+    const dx = mouseWorldPos.x - player.position.x;
+    const dy = mouseWorldPos.y - player.position.y;
+    const fireAngle = Math.atan2(dy, dx);
+
+    // Fire on space
+    if (keys.has(" ")) {
+      commands.push({
+        tick: gameState.tick,
+        playerId: 1,
+        entityId: playerEntityId,
+        action: "fire",
+        data: { angle: fireAngle },
+      } as any); // TODO: proper type
+    }
+  }
+
+  return commands;
+}
+
+/**
+ * Main animation loop.
+ */
+function animate(currentTime: number) {
+  const deltaTime = Math.min(currentTime - lastTime, 50); // Cap at 50ms to avoid spiral of death
+  lastTime = currentTime;
+
+  accumulator += deltaTime;
+
+  // Fixed timestep game updates
+  while (accumulator >= FRAME_TIME) {
+    const input = sampleInput();
+
+    // Step the simulation
+    const result = stepSimulation(gameState, input, { rng });
+    gameState = result.state;
+
+    accumulator -= FRAME_TIME;
+  }
+
+  // Render
+  renderGameState();
+
+  // Update camera to follow player
+  const playerEntityId = gameState.players[1];
+  if (playerEntityId !== undefined) {
+    const player = gameState.entities[playerEntityId];
+    if (player) {
+      camera.position.x = player.position.x;
+      camera.position.y = player.position.y;
+    }
   }
 
   renderer.render(scene, camera);
 
-  frameCount++;
-  const now = Date.now();
-  if (now - lastTime > 1000) {
-    updateUI("fps", String(frameCount));
-    frameCount = 0;
-    lastTime = now;
-  }
+  requestAnimationFrame(animate);
 }
 
+// Handle window resize
 window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
+  camera.left = -window.innerWidth / 2;
+  camera.right = window.innerWidth / 2;
+  camera.top = window.innerHeight / 2;
+  camera.bottom = -window.innerHeight / 2;
+  camera.updateProjectionMatrix();
 });
 
-// Start
-connect();
-animate();
+// Start the game loop
+requestAnimationFrame(animate);
+
+console.log("✓ Local game initialized. Controls: WASD to move, Space to fire");

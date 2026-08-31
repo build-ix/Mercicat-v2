@@ -8,6 +8,7 @@
     "build": "tsc -p ../../tsconfig.json --noEmit && vite build"
   },
   "dependencies": {
+    "@mercicat/client": "workspace:*",
     "@mercicat/content": "workspace:*",
     "@mercicat/protocol": "workspace:*",
     "@mercicat/shared": "workspace:*",
