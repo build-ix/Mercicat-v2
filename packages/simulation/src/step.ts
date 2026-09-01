@@ -7,6 +7,10 @@ import { applyDamage } from "./systems/damageSystem.js";
 import { spawnEnemies } from "./enemies.js";
 import { advanceMatchPhase } from "./matchPhase.js";
 import { advanceWavePhase } from "./wavePhase.js";
+import { advanceShop } from "./shopPlacement.js";
+import { advanceSpawnDirector } from "./spawnDirector.js";
+import { selectEnemyComposition } from "./spawnDirector.js";
+import { calculateThreatBudget } from "@mercicat/content";
 export interface SimulationContext { readonly rng: SeededRandom; readonly allPlayersReady?: boolean; }
 
 // Simulation units are world-units per tick at the canonical TICK_RATE.
@@ -18,6 +22,8 @@ export function step(previous: GameState, commands: readonly InputCommand[], con
   const events: SimulationEvent[] = [];
   advanceMatchPhase(state, context.allPlayersReady ?? false);
   advanceWavePhase(state, context.allPlayersReady ?? false, events);
+  advanceShop(state, events);
+  advanceSpawnDirector(state, context.rng, events);
   if (state.phase !== "waveActive" && state.phase !== "playing") {
     state.tick += 1;
     return { state, events, stateHash: hashGameState(state) };
@@ -25,6 +31,11 @@ export function step(previous: GameState, commands: readonly InputCommand[], con
   const tickCommands = commands.filter((c) => c.tick === state.tick).sort(compareCommands);
   applyCommands(state, tickCommands, events);
   if (state.wavePhase === "waveActive" && state.wave.spawnedForWave === 0 && !state.wave.waveComplete) {
+    if (Object.keys(state.spawnDirector.activeComposition).length === 0) {
+      state.spawnDirector.threatBudget = calculateThreatBudget(state.wave.currentWave, Object.keys(state.players).length, state.difficulty);
+      state.spawnDirector.activeComposition = selectEnemyComposition(state.wave.currentWave, Object.keys(state.players).length, state.difficulty, context.rng);
+      events.push({ type: "roleCompositionSelected", tick: state.tick, composition: state.spawnDirector.activeComposition });
+    }
     spawnEnemies(state, context.rng, state.wave.currentWave, events);
     events.push({ type: "waveStarted", tick: state.tick, wave: state.wave.currentWave });
   }

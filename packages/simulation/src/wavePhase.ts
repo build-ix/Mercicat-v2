@@ -80,6 +80,12 @@ export function advanceWavePhase(state: GameState, allPlayersReady: boolean, eve
       state.wave.waveComplete = false;
       state.waveTimerTicks = 0;
       state.waveDurationTicks = waveDurationTicks(state.wave.currentWave);
+      state.spawnDirector.threatBudget = 0;
+      state.spawnDirector.threatSpent = 0;
+      state.spawnDirector.spawnCursor = 0;
+      state.spawnDirector.nextSpawnTick = 0;
+      state.spawnDirector.activeComposition = {};
+      state.spawnDirector.elapsedTicks = 0;
       state.wavePhase = "waveActive";
       state.phase = "playing";
       events.push({ type: "waveStarted", tick: state.tick, wave: state.wave.currentWave });

@@ -76,6 +76,33 @@ export interface WaveState {
   matchComplete: boolean;
 }
 
+export type EnemyRole = "swarm" | "charger" | "ranged" | "tank" | "disabler" | "flanker";
+export type Difficulty = 1 | 2 | 3 | 4;
+
+export interface SpawnDirectorState {
+  threatBudget: number;
+  threatSpent: number;
+  spawnCursor: number;
+  nextSpawnTick: number;
+  activeComposition: Record<string, number>;
+  elapsedTicks: number;
+}
+
+export interface ShopState {
+  currentNodeId: string | null;
+  telegraphStartTick: number | null;
+  accessible: boolean;
+  used: boolean;
+}
+
+export interface MapNodeState {
+  id: string;
+  kind: "spawn" | "shop" | "objective";
+  x: number;
+  y: number;
+  navigationDistance?: Record<string, number>;
+}
+
 export interface GameState {
   readonly version: 1;
   tick: Tick;
@@ -94,6 +121,10 @@ export interface GameState {
   /** Per-player/shared deterministic reward ledger, populated at wave end. */
   waveRewards: Record<number, { xp: number; materials: number; loot: string[] }>;
   score: number;
+  difficulty: Difficulty;
+  spawnDirector: SpawnDirectorState;
+  shop: ShopState;
+  mapNodes: Record<string, MapNodeState>;
 }
 
 /** Current phases are the four values below; legacy values remain accepted by the
@@ -147,7 +178,15 @@ export type SimulationEvent =
       type: "waveStarted" | "waveCompleted" | "matchCompleted" | "matchDefeated";
       tick: Tick;
       wave: number;
-    };
+    }
+  | {
+      type: "shopTelegraphStarted" | "shopOpened" | "shopMoved";
+      tick: Tick;
+      nodeId: string;
+    }
+  | { type: "shopUnavailable"; tick: Tick; reason: string }
+  | { type: "spawnBatchQueued"; tick: Tick; wave: number; count: number; roles: EnemyRole[] }
+  | { type: "roleCompositionSelected"; tick: Tick; composition: Record<EnemyRole, number> };
 
 export interface SimulationResult {
   readonly state: GameState;

@@ -1,4 +1,5 @@
 import { GameState, PlayerId } from "@mercicat/shared";
+import { DEFAULT_MAP_NODES } from "@mercicat/content";
 import { waveDurationTicks } from "./wavePhase.js";
 
 export function createInitialState(
@@ -28,7 +29,25 @@ export function createInitialState(
       matchComplete: false
     },
     waveRewards: {},
-    score: 0
+    score: 0,
+    difficulty: 2,
+    spawnDirector: {
+      threatBudget: 0,
+      threatSpent: 0,
+      spawnCursor: 0,
+      nextSpawnTick: 0,
+      activeComposition: {},
+      elapsedTicks: 0
+    },
+    shop: {
+      currentNodeId: null,
+      telegraphStartTick: null,
+      accessible: false,
+      used: false
+    },
+    mapNodes: Object.fromEntries(Object.entries(DEFAULT_MAP_NODES).map(([id, node]) => [id, {
+      id: node.id, kind: node.kind, x: node.x, y: node.y, navigationDistance: node.distanceTo
+    }]))
   };
 
   for (const playerId of [...playerIds].sort((a, b) => a - b)) {

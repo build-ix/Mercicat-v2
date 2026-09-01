@@ -12,11 +12,15 @@ export interface CharacterDefinition {
 export interface EnemyDefinition {
   id: string;
   name: string;
-  maxHealth: number;
+  maxHealth?: number;
   speed: number;
-  radius: number;
-  attack: string;
-  xpReward: number;
+  radius?: number;
+  attack?: string;
+  xpReward?: number;
+  /** Phase 3B role stats. */
+  health: number;
+  damage: number;
+  attackCooldown: number;
 }
 
 export interface AttackDefinition {
@@ -82,6 +86,9 @@ export const DEFAULT_ENEMY: EnemyDefinition = {
   radius: 20,
   attack: "rat_bite",
   xpReward: 10,
+  health: 20,
+  damage: 5,
+  attackCooldown: 1,
 };
 
 export const BASIC_SHOT: AttackDefinition = {
@@ -133,3 +140,7 @@ export function createDefaultRegistry(): ContentRegistry {
 
   return registry;
 }
+
+export * from "./enemies.js";
+export * from "./waves.js";
+export * from "./maps.js";

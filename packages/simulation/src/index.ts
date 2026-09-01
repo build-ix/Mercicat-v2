@@ -13,4 +13,8 @@ export * from "./waves.js";
 export * from "./players.js";
 export * from "./matchPhase.js";
 export * from "./wavePhase.js";
+export * from "./spawnDirector.js";
+export * from "./spawnPacing.js";
+export * from "./shopPlacement.js";
+export * from "./enemyRoles.js";
 export { RngStreamFactory } from "@mercicat/shared";
