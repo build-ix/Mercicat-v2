@@ -4,8 +4,8 @@ import type { Difficulty, EnemyRole } from "@mercicat/shared";
 import { SeededRandom } from "@mercicat/shared";
 import { selectEnemyComposition } from "../src/index.js";
 
-function select(seed: number | string, wave = 1, players = 2, difficulty: Difficulty = 2) {
-  return selectEnemyComposition(wave, players, difficulty, new SeededRandom(seed));
+function select(seed: number | string, wave = 1, players = 2, difficulty: Difficulty = 2, budgetMultiplier = 1) {
+  return selectEnemyComposition(wave, players, difficulty, new SeededRandom(seed), budgetMultiplier);
 }
 function spent(composition: Record<EnemyRole, number>): number {
   return Object.entries(composition).reduce((sum, [role, count]) => sum + ENEMY_ROLES[role as EnemyRole].threatCost * count, 0);
@@ -14,7 +14,8 @@ function spent(composition: Record<EnemyRole, number>): number {
 describe("Phase 3B.0 spawn director", () => {
   it("is deterministic for the same seed and varies with a different seed", () => {
     expect(select("same-seed")).toEqual(select("same-seed"));
-    expect(select(1)).not.toEqual(select(2));
+    // With budgetMultiplier 0.3, budget is too small to fill all roles to cap; RNG variation matters
+    expect(select(1, 1, 4, 2, 0.3)).not.toEqual(select(2, 1, 4, 2, 0.3));
   });
 
   it("never exceeds its threat budget", () => {
