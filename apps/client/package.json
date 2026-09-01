@@ -9,6 +9,7 @@
   },
   "dependencies": {
     "@mercicat/client": "workspace:*",
+    "@mercicat/client-net": "workspace:*",
     "@mercicat/content": "workspace:*",
     "@mercicat/protocol": "workspace:*",
     "@mercicat/shared": "workspace:*",

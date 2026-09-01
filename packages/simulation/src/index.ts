@@ -1,5 +1,7 @@
 export * from "./createInitialState.js";
 export * from "./step.js";
+export * from "./engine/stepCoordinator.js";
+export * from "./engine/simulationContext.js";
 export * from "./stateHash.js";
 export * from "./replay.js";
 export * from "./adapter.js";

@@ -12,7 +12,8 @@
       "@mercicat/content": ["packages/content/dist/index.d.ts"],
       "@mercicat/simulation": ["packages/simulation/dist/index.d.ts"],
       "@mercicat/protocol": ["packages/protocol/dist/index.d.ts"],
-      "@mercicat/client": ["packages/client/src/index.ts"]
+      "@mercicat/client": ["packages/client/src/index.ts"],
+      "@mercicat/client-net/*": ["packages/client-net/src/*"]
     },
     "resolveJsonModule": true,
     "strict": true,

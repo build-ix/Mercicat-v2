@@ -1,0 +1,16 @@
+{
+  "name": "@mercicat/client-net",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./prediction": "./dist/prediction.js",
+    "./reconciliation": "./dist/reconciliation.js",
+    "./snapshotBuffer": "./dist/snapshotBuffer.js",
+    "./diagnostics": "./dist/diagnostics.js"
+  },
+  "scripts": { "build": "tsc --outDir dist --declaration", "test": "echo 'client-net: no tests'" },
+  "dependencies": { "@mercicat/shared": "workspace:*", "@mercicat/protocol": "workspace:*", "@mercicat/simulation": "workspace:*" },
+  "devDependencies": { "typescript": "^5.6.0", "vitest": "^1.0.0" }
+}

@@ -1,5 +1,7 @@
 // Data-driven content definitions — no behavior, just schemas
 
+import type { EnemyDefinition } from "./contracts/enemyDefinition.js";
+
 export interface CharacterDefinition {
   id: string;
   name: string;
@@ -9,19 +11,6 @@ export interface CharacterDefinition {
   defaultAttack: string;
 }
 
-export interface EnemyDefinition {
-  id: string;
-  name: string;
-  maxHealth?: number;
-  speed: number;
-  radius?: number;
-  attack?: string;
-  xpReward?: number;
-  /** Phase 3B role stats. */
-  health: number;
-  damage: number;
-  attackCooldown: number;
-}
 
 export interface AttackDefinition {
   id: string;
@@ -142,5 +131,6 @@ export function createDefaultRegistry(): ContentRegistry {
 }
 
 export * from "./enemies.js";
+export type { EnemyDefinition } from "./contracts/enemyDefinition.js";
 export * from "./waves.js";
 export * from "./maps.js";

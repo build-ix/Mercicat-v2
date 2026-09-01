@@ -38,6 +38,9 @@ importers:
       '@mercicat/client':
         specifier: workspace:*
         version: link:../../packages/client
+      '@mercicat/client-net':
+        specifier: workspace:*
+        version: link:../../packages/client-net
       '@mercicat/content':
         specifier: workspace:*
         version: link:../../packages/content
@@ -100,6 +103,9 @@ importers:
 
   packages/client:
     dependencies:
+      '@mercicat/client-net':
+        specifier: workspace:*
+        version: link:../client-net
       '@mercicat/shared':
         specifier: workspace:*
         version: link:../shared
@@ -109,6 +115,25 @@ importers:
       three:
         specifier: ^0.185.0
         version: 0.185.1
+    devDependencies:
+      typescript:
+        specifier: ^5.6.0
+        version: 5.9.3
+      vitest:
+        specifier: ^1.0.0
+        version: 1.6.1(@types/node@22.20.1)
+
+  packages/client-net:
+    dependencies:
+      '@mercicat/protocol':
+        specifier: workspace:*
+        version: link:../protocol
+      '@mercicat/shared':
+        specifier: workspace:*
+        version: link:../shared
+      '@mercicat/simulation':
+        specifier: workspace:*
+        version: link:../simulation
     devDependencies:
       typescript:
         specifier: ^5.6.0

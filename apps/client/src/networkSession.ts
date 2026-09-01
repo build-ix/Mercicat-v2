@@ -3,9 +3,9 @@ import type { GameState, InputCommand, NetworkSnapshot, PlayerId, SequencedInput
 import { SeededRandom, TICK_MS } from "@mercicat/shared";
 import { EVENTS, PROTOCOL_VERSION, deserializeSnapshot } from "@mercicat/protocol";
 import { step, hashGameState } from "@mercicat/simulation";
-import { InputHistory } from "./prediction";
+import { InputHistory } from "@mercicat/client-net/prediction";
 import { replayInputs } from "./inputReplayer";
-import { SnapshotBuffer, interpolateSnapshots } from "./snapshotBuffer";
+import { SnapshotBuffer, interpolateSnapshots } from "@mercicat/client-net/snapshotBuffer";
 
 export interface NetworkSessionOptions {
   url: string; roomId: string;

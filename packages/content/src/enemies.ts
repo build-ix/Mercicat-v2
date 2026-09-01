@@ -1,4 +1,4 @@
-import type { EnemyDefinition } from "./index.js";
+import type { EnemyDefinition } from "./contracts/enemyDefinition.js";
 
 export type EnemyRole = "swarm" | "charger" | "ranged" | "tank" | "disabler" | "flanker";
 export interface EnemyRoleDefinition extends EnemyDefinition {
