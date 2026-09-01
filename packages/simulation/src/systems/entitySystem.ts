@@ -1,5 +1,6 @@
-import { GameState, SimulationEvent, PlayerEntity, EnemyEntity, ProjectileEntity } from "@mercicat/shared";
+import { GameState, SimulationEvent, PlayerEntity, EnemyEntity, ProjectileEntity, EnemyRole } from "@mercicat/shared";
 import { SeededRandom } from "@mercicat/shared";
+import { ENEMY_ROLES } from "@mercicat/content";
 
 /** Advance active entities in stable entity-id order. */
 export function updateEntities(
@@ -46,7 +47,8 @@ export function markDespawned(
   if (!entity || entity.lifecycle === "despawned") return;
   entity.lifecycle = "despawned";
   entity.despawnTick = state.tick;
-  events.push({ type: "entityDespawned", tick: state.tick, entityId, reason });
+  events.push({ type: "entityDespawned", tick: state.tick, entityId, reason,
+    ...(entity.kind === "enemy" ? { role: (entity as EnemyEntity).enemyType as EnemyRole, threatCost: ENEMY_ROLES[(entity as EnemyEntity).enemyType as keyof typeof ENEMY_ROLES]?.threatCost } : {}) });
 }
 
 /** Remove terminal entities only after all systems have observed them. */

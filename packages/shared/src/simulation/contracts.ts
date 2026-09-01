@@ -1,3 +1,5 @@
+import type { SimulationEvent } from "../contracts/simulationEvents.js";
+
 export type EntityId = number;
 export type PlayerId = number;
 export type Tick = number;
@@ -33,6 +35,12 @@ export interface PlayerEntity extends BaseEntity {
   readonly kind: "player";
   playerId: PlayerId;
   fireCooldownTicks: number;
+  aim?: Vec2 | null;
+  weaponIds?: string[];
+  weaponLevels?: Record<string, number>;
+  xp?: number;
+  credits?: number;
+  inventory?: string[];
   deadSinceTick?: Tick;
   respawnCount?: number;
   /** A defeated player is downed for the remainder of the wave. */
@@ -45,6 +53,16 @@ export interface EnemyEntity extends BaseEntity {
   contactDamage: number;
   fireCooldownTicks: number;
   targetPlayerId: PlayerId | null;
+  role?: EnemyRole;
+  tier?: number;
+  threatCost?: number;
+  isBoss?: boolean;
+  telegraphEndTick?: Tick | null;
+  downed?: boolean;
+  /** Resolved Phase 3B.2 values; optional for backwards-compatible replay fixtures. */
+  moveSpeed?: number;
+  attackDamage?: number;
+  attackCooldownTicks?: number;
 }
 
 export interface ProjectileEntity extends BaseEntity {
@@ -86,6 +104,7 @@ export interface SpawnDirectorState {
   nextSpawnTick: number;
   activeComposition: Record<string, number>;
   elapsedTicks: number;
+  compositionSelectionReason?: "none" | "role-cap" | "unlock-gate" | "spawn-time" | "other";
 }
 
 export interface ShopState {
@@ -105,6 +124,8 @@ export interface MapNodeState {
 
 export interface GameState {
   readonly version: 1;
+  contentVersion?: number;
+  replayVersion?: number;
   tick: Tick;
   readonly seed: number | string;
   nextEntityId: EntityId;
@@ -120,6 +141,7 @@ export interface GameState {
   wave: WaveState;
   /** Per-player/shared deterministic reward ledger, populated at wave end. */
   waveRewards: Record<number, { xp: number; materials: number; loot: string[] }>;
+  rewardLedger?: Record<number, { xp: number; credits: number; loot: string[] }>;
   score: number;
   difficulty: Difficulty;
   spawnDirector: SpawnDirectorState;
@@ -134,6 +156,8 @@ export type WavePhase = "waveActive" | "waveEnding" | "intermission" | "nextWave
 export type GamePhase = "lobby" | "countdown" | "waveActive" | "gameOver" | "playing" | "victory" | "defeat";
 
 export interface InputCommand {
+  /** Stable client command identity; absent only on legacy v1 fixtures. */
+  commandId?: string;
   type: "move" | "fire" | "reload" | "ability" | "pause" | "usePickup" | "readyForNextWave";
   tick: Tick;
   playerId: PlayerId;
@@ -148,7 +172,7 @@ export interface InputCommand {
   pickupId?: EntityId;
 }
 
-export type SimulationEvent =
+export type LegacySimulationEvent =
   | {
       type: "waveWarning" | "waveEnding" | "waveEnded" | "intermissionStarted";
       tick: Tick;
@@ -159,6 +183,9 @@ export type SimulationEvent =
       tick: Tick;
       entityId: EntityId;
       kind: EntityKind;
+      wave?: number;
+      role?: EnemyRole;
+      threatCost?: number;
     }
   | {
       type: "entityDamaged";
@@ -173,6 +200,8 @@ export type SimulationEvent =
       tick: Tick;
       entityId: EntityId;
       reason: "dead" | "expired" | "removed";
+      role?: EnemyRole;
+      threatCost?: number;
     }
   | {
       type: "waveStarted" | "waveCompleted" | "matchCompleted" | "matchDefeated";
@@ -186,7 +215,7 @@ export type SimulationEvent =
     }
   | { type: "shopUnavailable"; tick: Tick; reason: string }
   | { type: "spawnBatchQueued"; tick: Tick; wave: number; count: number; roles: EnemyRole[] }
-  | { type: "roleCompositionSelected"; tick: Tick; composition: Record<EnemyRole, number> };
+  | { type: "roleCompositionSelected"; tick: Tick; wave: number; composition: Record<EnemyRole, number>; groupCount?: number };
 
 export interface SimulationResult {
   readonly state: GameState;

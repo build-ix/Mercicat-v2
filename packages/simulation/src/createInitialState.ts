@@ -37,7 +37,8 @@ export function createInitialState(
       spawnCursor: 0,
       nextSpawnTick: 0,
       activeComposition: {},
-      elapsedTicks: 0
+      elapsedTicks: 0,
+      compositionSelectionReason: "none"
     },
     shop: {
       currentNodeId: null,

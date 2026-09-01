@@ -17,7 +17,8 @@ export function updateEnemyAI(state: GameState, rng: SeededRandom, events: Simul
     const dx = player.position.x - enemy.position.x;
     const dy = player.position.y - enemy.position.y;
     const distance = Math.hypot(dx, dy);
-    enemy.velocity = distance > 0 ? { x: (dx / distance) * ENEMY_SPEED_PER_TICK, y: (dy / distance) * ENEMY_SPEED_PER_TICK } : { x: 0, y: 0 };
+    const speed = enemy.moveSpeed ?? ENEMY_SPEED_PER_TICK;
+    enemy.velocity = distance > 0 ? { x: (dx / distance) * speed, y: (dy / distance) * speed } : { x: 0, y: 0 };
     if (distance <= ENEMY_FIRE_RANGE && enemy.fireCooldownTicks === 0 && rng.chance(0.8)) {
       const direction = distance > 0 ? { x: dx / distance, y: dy / distance } : { x: 1, y: 0 };
       const id = state.nextEntityId++;
@@ -25,8 +26,8 @@ export function updateEnemyAI(state: GameState, rng: SeededRandom, events: Simul
         position: { x: enemy.position.x + direction.x * 18, y: enemy.position.y + direction.y * 18 },
         velocity: { x: direction.x * ENEMY_PROJECTILE_SPEED_PER_TICK, y: direction.y * ENEMY_PROJECTILE_SPEED_PER_TICK },
         radius: 4, health: 1, maxHealth: 1, spawnTick: state.tick, despawnTick: null,
-        damage: 5, lifetimeTicks: 180, ageTicks: 0 };
-      enemy.fireCooldownTicks = 45 + rng.nextInt(0, 15);
+        damage: enemy.attackDamage ?? 5, lifetimeTicks: 180, ageTicks: 0 };
+      enemy.fireCooldownTicks = enemy.attackCooldownTicks ?? (45 + rng.nextInt(0, 15));
       events.push({ type: "entitySpawned", tick: state.tick, entityId: id, kind: "projectile" });
     }
   }

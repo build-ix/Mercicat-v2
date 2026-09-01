@@ -8,7 +8,8 @@
   },
   "scripts": {
     "build": "tsc --outDir dist --declaration",
-    "test": "vitest --run"
+    "test": "vitest --run",
+    "balance-sweep": "node dist/balanceSweepCli.js"
   },
   "dependencies": {
     "@mercicat/shared": "workspace:*",

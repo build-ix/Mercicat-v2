@@ -4,8 +4,8 @@ import { stepCoordinator } from "./engine/stepCoordinator.js";
 import type { SimulationContext } from "./engine/simulationContext.js";
 
 /** Public compatibility facade. Legacy callers may omit allPlayersReady. */
-export function step(previous: GameState, commands: readonly InputCommand[], context: Pick<SimulationContext, "rng"> & Partial<Pick<SimulationContext, "allPlayersReady">>): SimulationResult {
-  return stepCoordinator(previous, commands, { rng: context.rng, allPlayersReady: context.allPlayersReady ?? false });
+export function step(previous: GameState, commands: readonly InputCommand[], context: Pick<SimulationContext, "rng"> & Partial<Pick<SimulationContext, "allPlayersReady" | "budgetMultiplier">>): SimulationResult {
+  return stepCoordinator(previous, commands, { rng: context.rng, allPlayersReady: context.allPlayersReady ?? false, budgetMultiplier: context.budgetMultiplier });
 }
 
 export type { SimulationContext };

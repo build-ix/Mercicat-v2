@@ -20,3 +20,4 @@ export * from "./spawnPacing.js";
 export * from "./shopPlacement.js";
 export * from "./enemyRoles.js";
 export { RngStreamFactory } from "@mercicat/shared";
+export * from "./balanceSweep.js";

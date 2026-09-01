@@ -46,6 +46,14 @@ describe("Phase 3B.0 spawn director", () => {
     expect(budgets).toEqual([30, 48, 65, 83, 101]);
   });
 
+  it("guarantees affordable role diversity and preserves the max-two cap", () => {
+    for (const seed of ["diversity-a", "diversity-b", "diversity-c"]) {
+      const composition = select(seed, 1, 2, 2);
+      expect(Object.keys(composition).length).toBeGreaterThanOrEqual(2);
+      expect(Object.values(composition).every((count) => count <= 2)).toBe(true);
+    }
+  });
+
   it("serializes composition keys alphabetically", () => {
     const composition = select("ordering", 5, 4, 4);
     expect(Object.keys(composition)).toEqual([...Object.keys(composition)].sort());

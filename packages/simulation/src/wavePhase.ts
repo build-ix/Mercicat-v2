@@ -56,7 +56,7 @@ export function advanceWavePhase(state: GameState, allPlayersReady: boolean, eve
     }
     emit(events, "waveEnded", state);
     events.push({ type: "waveCompleted", tick: state.tick, wave: state.wave.currentWave });
-    if (state.wave.currentWave >= Math.min(state.wave.totalWaves, 5)) {
+    if (state.wave.currentWave >= state.wave.totalWaves) {
       state.wave.matchComplete = true;
       state.phase = "victory";
     } else {
@@ -86,6 +86,7 @@ export function advanceWavePhase(state: GameState, allPlayersReady: boolean, eve
       state.spawnDirector.nextSpawnTick = 0;
       state.spawnDirector.activeComposition = {};
       state.spawnDirector.elapsedTicks = 0;
+      state.spawnDirector.compositionSelectionReason = "none";
       state.wavePhase = "waveActive";
       state.phase = "playing";
       events.push({ type: "waveStarted", tick: state.tick, wave: state.wave.currentWave });

@@ -38,11 +38,15 @@ describe("Phase 3A timed wave foundation", () => {
   it("keeps the authoritative clock stable under variable enemy counts", () => {
     let state = createInitialState("stress", [1]);
     state.waveDurationTicks = 101;
+    // Disable auto-spawning so director doesn't create combat-active enemies during this fixture.
+    state.spawnDirector.activeComposition = {};
     const rng = new SeededRandom(state.seed);
     for (let i = 0; i < 100; i += 1) {
       if (i % 3 === 0) {
         const id = state.nextEntityId++;
-        state.entities[id] = { id, kind: "enemy", lifecycle: "active", position: { x: i, y: 0 }, velocity: { x: 0, y: 0 }, radius: 10, health: 1, maxHealth: 1, spawnTick: state.tick, despawnTick: null, enemyType: "stress", contactDamage: 0, fireCooldownTicks: 0, targetPlayerId: null };
+        // Keep this clock stress fixture combat-neutral: its purpose is to
+        // exercise variable entity counts, not player defeat or collisions.
+        state.entities[id] = { id, kind: "enemy", lifecycle: "active", position: { x: 10000 + i, y: 10000 }, velocity: { x: 0, y: 0 }, radius: 10, health: 1, maxHealth: 1, spawnTick: state.tick, despawnTick: null, enemyType: "stress", contactDamage: 0, fireCooldownTicks: 0, targetPlayerId: null };
       }
       state = step(state, [], { rng }).state;
     }
