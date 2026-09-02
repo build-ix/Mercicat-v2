@@ -1,0 +1,77 @@
+{
+  "arena_diameter_m": 64.0,
+  "floor_top_z_m": 0.0,
+  "pillar_count": 8,
+  "pillar_positions": [
+    [
+      0,
+      20
+    ],
+    [
+      14.14,
+      14.14
+    ],
+    [
+      20,
+      0
+    ],
+    [
+      14.14,
+      -14.14
+    ],
+    [
+      0,
+      -20
+    ],
+    [
+      -14.14,
+      -14.14
+    ],
+    [
+      -20,
+      0
+    ],
+    [
+      -14.14,
+      14.14
+    ]
+  ],
+  "pillar_ring_radius_m": 20.0,
+  "vat_count": 3,
+  "vat_centers": [
+    [
+      0,
+      6
+    ],
+    [
+      -3.5,
+      -3
+    ],
+    [
+      3.5,
+      -3
+    ]
+  ],
+  "vat_diameter_m": 4.0,
+  "vat_height_m": 3.5,
+  "cluster_contract_diameter_m": 12.0,
+  "cover_count": 24,
+  "cover_types": {
+    "Waist": 8,
+    "Full": 8,
+    "LowNet": 8
+  },
+  "cover_ring_radii_m": [
+    8,
+    18,
+    28
+  ],
+  "cover_min_center_spacing_m": 6.124638764857892,
+  "inner_cover_min_distance_to_vat_centers_m": 2.0,
+  "no_cover_in_inner_4m_arena_zone": true,
+  "ceiling_height_m": 24.0,
+  "player_proxy_radius_m": 0.4,
+  "dead_margin_m": 3.0,
+  "sightline_target_m": 35.0,
+  "sightline_validation": "Pillars and three cover rings provide repeated ground-level breaks; exact raycast audit deferred to runtime navmesh."
+}
