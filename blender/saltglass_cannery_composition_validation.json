@@ -1,0 +1,171 @@
+{
+  "asset": "Saltglass Cannery full composition",
+  "blender_version": "3.4.1",
+  "units": {
+    "system": "METRIC",
+    "scale_length": 1.0,
+    "length_unit": "METERS"
+  },
+  "origin": "Gutting Hall Arena center (0,0,0)",
+  "section_count_expected": 5,
+  "section_count_actual": 5,
+  "all_glbs_present": true,
+  "sections": [
+    {
+      "label": "Spawn Zone",
+      "source_glb": "/home/alfr/mercicat-rebuild/blender/saltglass_spawn_zone_graybox.glb",
+      "present": true,
+      "locked_transform_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "imported_object_count": 19
+    },
+    {
+      "label": "Shop Platform SW",
+      "source_glb": "/home/alfr/mercicat-rebuild/blender/saltglass_shop_platform_sw_graybox.glb",
+      "present": true,
+      "locked_transform_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "imported_object_count": 12
+    },
+    {
+      "label": "Corridor Section",
+      "source_glb": "/home/alfr/mercicat-rebuild/blender/saltglass_corridor_section_graybox.glb",
+      "present": true,
+      "locked_transform_m": [
+        0.0,
+        -40.0,
+        0.0
+      ],
+      "imported_object_count": 13
+    },
+    {
+      "label": "Gutting Hall Arena",
+      "source_glb": "/home/alfr/mercicat-rebuild/blender/saltglass_gutting_hall_arena_graybox.glb",
+      "present": true,
+      "locked_transform_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "imported_object_count": 45
+    },
+    {
+      "label": "Conveyor Spine",
+      "source_glb": "/home/alfr/mercicat-rebuild/blender/saltglass_conveyor_spine_graybox.glb",
+      "present": true,
+      "locked_transform_m": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "imported_object_count": 114
+    }
+  ],
+  "transform_accuracy": {
+    "status": "PASS",
+    "tolerance_m": 0.001,
+    "checked_against": "locked section root transforms"
+  },
+  "seam_validation": {
+    "junction_count": 8,
+    "max_gap_m": 0.0,
+    "threshold_m": 0.1,
+    "max_elevation_delta_m": 0.0,
+    "threshold_elevation_m": 0.05,
+    "results": [
+      {
+        "junction": "Spawn Zone / Corridor S",
+        "portal_gap_m": 0.0,
+        "elevation_delta_m": 0.0,
+        "gap_pass": true,
+        "elevation_pass": true
+      },
+      {
+        "junction": "Corridor / Gutting Hall S",
+        "portal_gap_m": 0.0,
+        "elevation_delta_m": 0.0,
+        "gap_pass": true,
+        "elevation_pass": true
+      },
+      {
+        "junction": "Shop Platform SW / Arena N",
+        "portal_gap_m": 0.0,
+        "elevation_delta_m": 0.0,
+        "gap_pass": true,
+        "elevation_pass": true
+      },
+      {
+        "junction": "Conveyor Spine / Arena W",
+        "portal_gap_m": 0.0,
+        "elevation_delta_m": 0.0,
+        "gap_pass": true,
+        "elevation_pass": true
+      },
+      {
+        "junction": "Conveyor Spine / Arena E",
+        "portal_gap_m": 0.0,
+        "elevation_delta_m": 0.0,
+        "gap_pass": true,
+        "elevation_pass": true
+      },
+      {
+        "junction": "Gutting Hall North Boundary",
+        "portal_gap_m": 0.0,
+        "elevation_delta_m": 0.0,
+        "gap_pass": true,
+        "elevation_pass": true
+      },
+      {
+        "junction": "Gutting Hall East Boundary",
+        "portal_gap_m": 0.0,
+        "elevation_delta_m": 0.0,
+        "gap_pass": true,
+        "elevation_pass": true
+      },
+      {
+        "junction": "Gutting Hall SW Boundary",
+        "portal_gap_m": 0.0,
+        "elevation_delta_m": 0.0,
+        "gap_pass": true,
+        "elevation_pass": true
+      }
+    ]
+  },
+  "overlap_validation": {
+    "status": "PASS_WITH_INTENTIONAL_GATEWAY_CONTACTS",
+    "unapproved_overlaps": 0,
+    "intentional_gateway_pairs": [
+      [
+        "Corridor Section",
+        "Gutting Hall Arena"
+      ],
+      [
+        "Spawn Zone",
+        "Corridor Section"
+      ],
+      [
+        "Shop Platform SW",
+        "Gutting Hall Arena"
+      ],
+      [
+        "Conveyor Spine",
+        "Gutting Hall Arena"
+      ]
+    ],
+    "method": "section contacts at named portals are allowed; no unapproved section overlap recorded"
+  },
+  "portal_marker_count": 8,
+  "portal_marker_diameter_m": 0.5,
+  "seam_ring_count": 8,
+  "player_scale_reference_count": 5,
+  "player_scale_diameter_m": 0.4,
+  "render_png": "/home/alfr/mercicat-rebuild/blender/saltglass_cannery_full_map_validation.png",
+  "composition_glb": "/home/alfr/mercicat-rebuild/blender/saltglass_cannery_composition.glb",
+  "blend": "/home/alfr/mercicat-rebuild/blender/saltglass_cannery_composition.blend"
+}
