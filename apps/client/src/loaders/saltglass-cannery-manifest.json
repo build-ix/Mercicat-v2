@@ -1,0 +1,42 @@
+[
+  {
+    "id": "spawn-zone",
+    "glbPath": "/assets/saltglass_spawn_zone_graybox.glb",
+    "worldTransform": { "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] },
+    "collisionAsset": "spawn-zone-collision",
+    "version": "phase-3c-graybox-v1",
+    "hash": "sha256:65b2142dc3b7cae0ef8b752d3d022a9e3d143593724fa37d5e7b8bbc4617547b"
+  },
+  {
+    "id": "shop-platform-sw",
+    "glbPath": "/assets/saltglass_shop_platform_sw_graybox.glb",
+    "worldTransform": { "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] },
+    "collisionAsset": "shop-platform-sw-collision",
+    "version": "phase-3c-graybox-v1",
+    "hash": "sha256:ea6247ab8570fe70dbdfaab2dbb9e3860c11ad7d3f36f88c0d4f8856e61f179b"
+  },
+  {
+    "id": "corridor-section",
+    "glbPath": "/assets/saltglass_corridor_section_graybox.glb",
+    "worldTransform": { "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] },
+    "collisionAsset": "corridor-section-collision",
+    "version": "phase-3c-graybox-v1",
+    "hash": "sha256:44e4d3ad7639005296673e4e0ee1db9145a9ce1ea4af0af1bb132ba36a685a74"
+  },
+  {
+    "id": "gutting-hall-arena",
+    "glbPath": "/assets/saltglass_gutting_hall_arena_graybox.glb",
+    "worldTransform": { "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] },
+    "collisionAsset": "gutting-hall-arena-collision",
+    "version": "phase-3c-graybox-v1",
+    "hash": "sha256:f4900610defc14d6f51002f387dabe351c350b2688dc1df0054bcb651fc7222e"
+  },
+  {
+    "id": "conveyor-spine",
+    "glbPath": "/assets/saltglass_conveyor_spine_graybox.glb",
+    "worldTransform": { "position": [0, 0, 0], "rotation": [0, 0, 0], "scale": [1, 1, 1] },
+    "collisionAsset": "conveyor-spine-collision",
+    "version": "phase-3c-graybox-v1",
+    "hash": "sha256:dffe10815dc7504b68f520c6f85579476c265f04d6ed627d31e1d562fe67c5e4"
+  }
+]
