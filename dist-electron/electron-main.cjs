@@ -23,11 +23,33 @@ async function createWindow() {
     minHeight: 640,
     show: false,
     backgroundColor: "#1a1a1e",
-    webPreferences: { contextIsolation: true, sandbox: true },
+    webPreferences: {
+      contextIsolation: true,
+      sandbox: true,
+      preload: undefined,
+      nodeIntegration: false,
+      enableRemoteModule: false,
+    },
   });
 
-  const indexPath = path.join(__dirname, "..", "apps", "client", "dist", "index.html");
-  await window.loadFile(indexPath);
+  const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
+  let url;
+
+  if (isDev) {
+    // Development: load from dist directory
+    const assetDir = path.join(__dirname, "apps", "client", "dist");
+    const indexPath = path.join(assetDir, "index.html");
+    url = `file://${indexPath}`;
+    console.log("DEV: Loading from", indexPath);
+  } else {
+    // Production: assets are inside app.asar, use asar: protocol
+    const indexPath = path.join(process.resourcesPath, "app.asar", "apps", "client", "dist", "index.html");
+    url = `file://${indexPath}`;
+    console.log("PROD: Loading from", indexPath);
+  }
+
+  console.log("URL:", url);
+  await window.loadURL(url);
   window.once("ready-to-show", () => window.show());
 }
 

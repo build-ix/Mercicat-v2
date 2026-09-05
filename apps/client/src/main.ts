@@ -3,10 +3,18 @@ import { TICK_RATE } from "@mercicat/shared";
 import type { GameState, InputCommand } from "@mercicat/shared";
 import { GameRenderer, gameStateToRender } from "@mercicat/client";
 import { NetworkSession } from "./networkSession";
+import { TitleScreen } from "./screens/TitleScreen";
+import { ModeSelectScreen } from "./screens/ModeSelectScreen";
+import { CharacterManagerScreen } from "./screens/CharacterManagerScreen";
+import { LobbyScreen } from "./screens/LobbyScreen";
+import type { Character } from "./screens/types";
+import "./screens/menu.css";
 
 const LOCAL_PLAYER_ID = 1;
 const SEED = 12345;
 const MAX_FRAME_DELTA_MS = (1000 / TICK_RATE) * 5;
+
+// Canvas & Renderer setup
 const canvas = document.getElementById("canvas") as HTMLCanvasElement;
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
 renderer.setClearColor(0x1a1a1e);
@@ -21,21 +29,18 @@ scene.add(directionalLight);
 const ground = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshStandardMaterial({ color: 0x2a2a30 }));
 scene.add(ground);
 
-const session = new NetworkSession({
-  url: `http://${window.location.hostname}:3001`,
-  roomId: new URLSearchParams(window.location.search).get("room") ?? "default",
-  onStatus: (value) => { status.textContent = value === "joined" ? "Playing" : value; },
-  onError: (error) => console.warn("Network protocol error", error),
-  useAuthoritativeOnly: false, // Phase 2B: render the locally predicted state
-});
-session.connect();
+// Game state variables
 const gameRenderer = new GameRenderer(scene);
 const keys = new Set<string>();
 let mouseWorldPos = { x: 0, y: 0 };
 let fireRequested = false;
 let fps = 0;
 let currentState: GameState | null = null;
+let session: NetworkSession | null = null;
+let gameLoopActive = false;
+let frameRequestId: number | null = null;
 
+// UI elements
 const status = document.getElementById("status")!;
 const tickValue = document.getElementById("tick")!;
 const fpsValue = document.getElementById("fps")!;
@@ -48,6 +53,12 @@ const phaseValue = document.getElementById("phase")!;
 const endScreen = document.getElementById("end-screen")!;
 const endMessage = document.getElementById("end-message")!;
 const restartButton = document.getElementById("restart") as HTMLButtonElement;
+const menuContainer = document.getElementById("menu-container")!;
+const gameContainer = document.getElementById("game-container")!;
+
+// Menu state
+let currentCharacter: Character | null = null;
+let gameMode: "singlePlayer" | "multiplayer" | null = null;
 
 function updateMouseWorldPosition(event: MouseEvent): void {
   const rect = canvas.getBoundingClientRect();
@@ -59,28 +70,42 @@ function updateMouseWorldPosition(event: MouseEvent): void {
     y: camera.position.y + (0.5 - screenY / rect.height) * (camera.top - camera.bottom),
   };
 }
+
 canvas.addEventListener("mousemove", updateMouseWorldPosition);
-window.addEventListener("keydown", (event) => { const key = event.key.toLowerCase(); if (key === " " && !event.repeat) fireRequested = true; keys.add(key); });
+window.addEventListener("keydown", (event) => {
+  const key = event.key.toLowerCase();
+  if (key === " " && !event.repeat) fireRequested = true;
+  keys.add(key);
+});
 window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
 canvas.addEventListener("pointerdown", () => { fireRequested = true; });
 
 function sampleInput(): InputCommand[] {
   const commands: InputCommand[] = [];
-  let dx = 0; let dy = 0;
+  let dx = 0;
+  let dy = 0;
   if (keys.has("w")) dy += 1;
   if (keys.has("s")) dy -= 1;
   if (keys.has("a")) dx -= 1;
   if (keys.has("d")) dx += 1;
   const length = Math.hypot(dx, dy);
-  // Always send a movement state sample, including zero, so key release is
-  // represented explicitly at the simulation tick.
-  const playerId = session.playerId ?? LOCAL_PLAYER_ID;
-  commands.push({ type: "move", tick: currentState!.tick, playerId, direction: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 } });
+  const playerId = session?.playerId ?? LOCAL_PLAYER_ID;
+  commands.push({
+    type: "move",
+    tick: currentState!.tick,
+    playerId,
+    direction: length > 0 ? { x: dx / length, y: dy / length } : { x: 0, y: 0 },
+  });
   if (fireRequested) {
     const player = currentState!.entities[currentState!.players[playerId]];
     if (player?.kind === "player") {
       const angle = Math.atan2(mouseWorldPos.y - player.position.y, mouseWorldPos.x - player.position.x);
-      commands.push({ type: "fire", tick: currentState!.tick, playerId, direction: { x: Math.cos(angle), y: Math.sin(angle) } });
+      commands.push({
+        type: "fire",
+        tick: currentState!.tick,
+        playerId,
+        direction: { x: Math.cos(angle), y: Math.sin(angle) },
+      });
     }
   }
   fireRequested = false;
@@ -107,16 +132,17 @@ function updateHud(context: ReturnType<typeof gameStateToRender>): void {
   }
 }
 
-function restart(): void {
-  session.reset();
-  accumulator = 0;
-  previousTime = performance.now();
+function restartGame(): void {
+  if (session) {
+    session.reset();
+  }
   keys.clear();
   fireRequested = false;
   camera.position.set(0, 0, 10);
   endScreen.classList.remove("visible");
 }
-restartButton.addEventListener("click", restart);
+
+restartButton.addEventListener("click", restartGame);
 
 function resize(): void {
   const width = window.innerWidth;
@@ -130,32 +156,40 @@ function resize(): void {
   camera.updateProjectionMatrix();
   updateMouseWorldPosition(new MouseEvent("mousemove", { clientX: width / 2, clientY: height / 2 }));
 }
+
 window.addEventListener("resize", resize);
 resize();
 
 const tickDuration = 1000 / TICK_RATE;
 let accumulator = 0;
 let previousTime = performance.now();
+
 function frame(now: number): void {
   const delta = Math.min(now - previousTime, MAX_FRAME_DELTA_MS);
   previousTime = now;
   const instantFps = delta > 0 ? 1000 / delta : 0;
   fps = fps === 0 ? instantFps : fps * 0.9 + instantFps * 0.1;
   accumulator += delta;
-  currentState = session.state;
+  currentState = session?.state ?? null;
+
   if (!currentState) {
     renderer.render(scene, camera);
-    requestAnimationFrame(frame);
+    frameRequestId = requestAnimationFrame(frame);
     return;
   }
+
   while (accumulator >= tickDuration) {
-    session.step(sampleInput());
+    session!.step(sampleInput());
     accumulator -= tickDuration;
   }
-  // Phase 2A: render authoritative server state only (no prediction/interpolation).
-  currentState = session.getRenderableState() ?? session.state;
-  if (!currentState) { requestAnimationFrame(frame); return; }
-  const localPlayerId = session.playerId ?? LOCAL_PLAYER_ID;
+
+  currentState = session!.getRenderableState() ?? session!.state;
+  if (!currentState) {
+    frameRequestId = requestAnimationFrame(frame);
+    return;
+  }
+
+  const localPlayerId = session!.playerId ?? LOCAL_PLAYER_ID;
   const context = gameStateToRender(currentState, localPlayerId);
   gameRenderer.render(context);
   updateHud(context);
@@ -165,7 +199,76 @@ function frame(now: number): void {
     camera.position.y = player.position.y;
   }
   renderer.render(scene, camera);
-  requestAnimationFrame(frame);
+  frameRequestId = requestAnimationFrame(frame);
 }
-requestAnimationFrame(frame);
-console.log("✓ Local game initialized", { seed: SEED, tickRate: TICK_RATE });
+
+function startGame(roomId: string): void {
+  gameLoopActive = true;
+  menuContainer.style.display = "none";
+  gameContainer.style.display = "block";
+
+  session = new NetworkSession({
+    url: `http://${window.location.hostname}:3001`,
+    roomId,
+    onStatus: (value) => {
+      status.textContent = value === "joined" ? "Waiting for players..." : value;
+    },
+    onError: (error) => console.warn("Network protocol error", error),
+    useAuthoritativeOnly: false,
+  });
+
+  session.connect();
+  frameRequestId = requestAnimationFrame(frame);
+}
+
+function showTitleScreen(): void {
+  menuContainer.style.display = "block";
+  gameContainer.style.display = "none";
+
+  if (frameRequestId !== null) {
+    cancelAnimationFrame(frameRequestId);
+    frameRequestId = null;
+  }
+
+  const title = new TitleScreen(menuContainer, showModeSelect);
+  title.show();
+}
+
+function showModeSelect(): void {
+  const modeSelect = new ModeSelectScreen(menuContainer, (mode) => {
+    gameMode = mode;
+    showCharacterManager(mode);
+  });
+  modeSelect.show();
+}
+
+function showCharacterManager(mode: "singlePlayer" | "multiplayer"): void {
+  const charMgr = new CharacterManagerScreen(menuContainer, (character) => {
+    currentCharacter = character;
+    if (mode === "singlePlayer") {
+      startGame("singleplayer");
+    } else {
+      showLobby();
+    }
+  });
+  charMgr.show();
+}
+
+function showLobby(): void {
+  if (!currentCharacter) return;
+  
+  const lobbyScreen = new LobbyScreen(
+    menuContainer,
+    currentCharacter,
+    `http://${window.location.hostname}:3001`,
+    (lobbyCode: string) => {
+      startGame(lobbyCode);
+    },
+    showModeSelect
+  );
+  
+  lobbyScreen.show();
+}
+
+// Initialize with mode select (skip title screen, go straight to gameplay options)
+showModeSelect();

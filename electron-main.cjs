@@ -1,7 +1,6 @@
-const { app, BrowserWindow, protocol } = require("electron");
+const { app, BrowserWindow } = require("electron");
 const { fork } = require("node:child_process");
 const path = require("node:path");
-const fs = require("node:fs");
 
 let serverProcess;
 function startServer() {
@@ -28,29 +27,29 @@ async function createWindow() {
       contextIsolation: true,
       sandbox: true,
       preload: undefined,
+      nodeIntegration: false,
+      enableRemoteModule: false,
     },
   });
 
-  // In production (packaged), assets are in resources/app.asar/apps/client/dist
-  // In development, assets are in ../apps/client/dist relative to dist-electron
   const isDev = process.env.NODE_ENV === "development" || !app.isPackaged;
-  let assetDir;
+  let url;
 
   if (isDev) {
-    assetDir = path.join(__dirname, "..", "apps", "client", "dist");
+    // Development: load from dist directory
+    const assetDir = path.join(__dirname, "apps", "client", "dist");
+    const indexPath = path.join(assetDir, "index.html");
+    url = `file://${indexPath}`;
+    console.log("DEV: Loading from", indexPath);
   } else {
-    assetDir = path.join(process.resourcesPath, "app.asar", "apps", "client", "dist");
+    // Production: assets are inside app.asar, use asar: protocol
+    const indexPath = path.join(process.resourcesPath, "app.asar", "apps", "client", "dist", "index.html");
+    url = `file://${indexPath}`;
+    console.log("PROD: Loading from", indexPath);
   }
 
-  const indexPath = path.join(assetDir, "index.html");
-  console.log("Loading from:", indexPath);
-  console.log("Asset directory:", assetDir);
-
-  // Load file:// URL with proper directory context
-  const fileUrl = new URL(`file://${indexPath}`).href;
-  console.log("File URL:", fileUrl);
-
-  await window.loadURL(fileUrl);
+  console.log("URL:", url);
+  await window.loadURL(url);
   window.once("ready-to-show", () => window.show());
 }
 

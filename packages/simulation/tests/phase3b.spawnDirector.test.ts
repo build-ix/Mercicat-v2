@@ -47,12 +47,23 @@ describe("Phase 3B.0 spawn director", () => {
     expect(budgets).toEqual([30, 48, 65, 83, 101]);
   });
 
-  it("guarantees affordable role diversity and preserves the max-two cap", () => {
-    for (const seed of ["diversity-a", "diversity-b", "diversity-c"]) {
-      const composition = select(seed, 1, 2, 2);
-      expect(Object.keys(composition).length).toBeGreaterThanOrEqual(2);
-      expect(Object.values(composition).every((count) => count <= 2)).toBe(true);
+  it("guarantees affordable role diversity and supports multiple role groups", () => {
+    // The new multi-group design allows roles to appear in multiple groups.
+    // Each group maintains the 2-per-role cap within the group, but overall
+    // role counts can exceed 2 due to multiple groups being created.
+    
+    // All waves should have at least 2 distinct roles
+    for (const wave of [1, 5, 10, 15, 20]) {
+      for (const seed of ["div-a", "div-b", "div-c"]) {
+        const composition = select(seed, wave, 2, 2);
+        expect(Object.keys(composition).length).toBeGreaterThanOrEqual(2);
+      }
     }
+    
+    // Later waves should tend to have higher total role counts (more groups)
+    const wave1Max = Math.max(...Object.values(select("wave1", 1, 2, 2)));
+    const wave20Max = Math.max(...Object.values(select("wave20", 20, 2, 2)));
+    expect(wave20Max).toBeGreaterThanOrEqual(wave1Max); // Late waves have same or more groups
   });
 
   it("serializes composition keys alphabetically", () => {

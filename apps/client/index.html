@@ -3,7 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Mercicat Vertical Slice</title>
+    <base href="./">
+    <title>Mercicat v2 — Playable Demo</title>
     <style>
       * {
         margin: 0;
@@ -11,43 +12,97 @@
         box-sizing: border-box;
       }
       body {
-        background: #1a1a1e;
+        background: #0a0a0d;
         color: #e0e0e0;
-        font-family: monospace;
+        font-family: "Monaco", "Courier New", monospace;
         overflow: hidden;
+        letter-spacing: 0.5px;
       }
       #canvas {
         display: block;
         width: 100vw;
         height: 100vh;
       }
+
+      /* Top-left HUD */
       #ui {
         position: absolute;
         top: 16px;
         left: 16px;
-        background: rgba(0, 0, 0, 0.8);
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.95), rgba(30, 30, 35, 0.95));
         padding: 16px;
-        border-radius: 8px;
-        border: 1px solid #505050;
+        border-radius: 6px;
+        border: 1px solid rgba(80, 160, 255, 0.4);
+        box-shadow: 0 0 20px rgba(80, 160, 255, 0.2), inset 0 0 20px rgba(0, 0, 0, 0.5);
         font-size: 12px;
-        line-height: 1.6;
-        width: 280px;
+        line-height: 1.8;
+        width: 300px;
         z-index: 10;
       }
+
+      #ui > div:first-child {
+        background: linear-gradient(90deg, #ff8040, #ff6020);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        font-weight: bold;
+        font-size: 14px;
+        letter-spacing: 1px;
+        margin-bottom: 12px;
+        text-shadow: 0 0 10px rgba(255, 128, 64, 0.3);
+      }
+
       .stat {
         display: flex;
         justify-content: space-between;
-        padding: 4px 0;
+        padding: 6px 0;
+        border-bottom: 1px solid rgba(80, 80, 90, 0.3);
+        transition: all 0.2s ease;
       }
+
+      .stat:hover {
+        background: rgba(80, 160, 255, 0.1);
+        padding-left: 4px;
+      }
+
+      .stat:last-child {
+        border-bottom: none;
+      }
+
       .label {
-        color: #a0a0a0;
+        color: #808090;
+        font-weight: 500;
       }
+
       .value {
-        color: #00ff00;
+        color: #44ff88;
         font-weight: bold;
+        font-feature-settings: "tnum";
+        min-width: 80px;
+        text-align: right;
       }
-      #health { color: #66ff88; }
-      #phase { text-transform: uppercase; }
+
+      #health {
+        color: #66ff88;
+      }
+
+      #phase {
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        color: #00ddff;
+      }
+
+      /* Status indicator */
+      #status {
+        color: #ffff00;
+        margin-top: 8px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(80, 160, 255, 0.3);
+        display: block;
+        text-align: center;
+      }
+
+      /* End screen (game over / victory) */
       #end-screen {
         position: absolute;
         inset: 0;
@@ -55,97 +110,261 @@
         align-items: center;
         justify-content: center;
         flex-direction: column;
-        gap: 18px;
-        background: rgba(8, 8, 12, 0.78);
+        gap: 24px;
+        background: radial-gradient(ellipse at center, rgba(10, 10, 15, 0.85), rgba(5, 5, 8, 0.95));
+        backdrop-filter: blur(4px);
         z-index: 20;
         opacity: 0;
         pointer-events: none;
-        transition: opacity 120ms ease;
+        transition: opacity 200ms ease, backdrop-filter 200ms ease;
       }
-      #end-screen.visible { opacity: 1; pointer-events: auto; }
-      #end-message { color: #ffb060; font-size: 28px; font-weight: bold; text-shadow: 0 2px 8px #000; }
-      #restart { cursor: pointer; border: 1px solid #ff8040; border-radius: 5px; padding: 10px 26px; background: #301c12; color: #fff; font: inherit; }
-      #restart:hover { background: #5a2b18; }
-      #status {
-        color: #ffff00;
-        margin-top: 8px;
-        padding-top: 8px;
-        border-top: 1px solid #404040;
+
+      #end-screen.visible {
+        opacity: 1;
+        pointer-events: auto;
       }
+
+      #end-message {
+        color: #ffb060;
+        font-size: 36px;
+        font-weight: bold;
+        text-shadow: 0 0 20px rgba(255, 176, 96, 0.5), 0 2px 8px rgba(0, 0, 0, 0.8);
+        letter-spacing: 2px;
+        animation: pulse-text 0.6s ease-in-out;
+      }
+
+      @keyframes pulse-text {
+        0% {
+          transform: scale(0.9);
+          opacity: 0;
+        }
+        50% {
+          transform: scale(1.05);
+        }
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+      }
+
+      #restart {
+        cursor: pointer;
+        border: 2px solid #ff8040;
+        border-radius: 6px;
+        padding: 12px 32px;
+        background: linear-gradient(135deg, rgba(80, 32, 16, 0.9), rgba(128, 48, 24, 0.9));
+        color: #fff;
+        font-family: inherit;
+        font-size: 14px;
+        font-weight: bold;
+        letter-spacing: 1px;
+        transition: all 0.2s ease;
+        box-shadow: 0 0 15px rgba(255, 128, 64, 0.3);
+        text-transform: uppercase;
+      }
+
+      #restart:hover {
+        background: linear-gradient(135deg, rgba(128, 48, 24, 1), rgba(180, 64, 32, 1));
+        box-shadow: 0 0 25px rgba(255, 128, 64, 0.6);
+        transform: scale(1.05);
+      }
+
+      #restart:active {
+        transform: scale(0.98);
+      }
+
+      /* Bottom-left controls help */
       #help {
         position: absolute;
         bottom: 16px;
         left: 16px;
-        background: rgba(0, 0, 0, 0.8);
-        padding: 12px;
-        border-radius: 8px;
-        border: 1px solid #505050;
+        background: linear-gradient(135deg, rgba(20, 20, 25, 0.95), rgba(30, 30, 35, 0.95));
+        padding: 14px;
+        border-radius: 6px;
+        border: 1px solid rgba(80, 160, 255, 0.3);
+        box-shadow: 0 0 15px rgba(80, 160, 255, 0.15);
         font-size: 11px;
-        width: 280px;
+        width: 260px;
+        line-height: 1.6;
       }
-      .help-row {
-        margin: 4px 0;
-        color: #a0a0a0;
-      }
-      .help-key {
-        color: #00ff00;
+
+      #help > div:first-child {
+        background: linear-gradient(90deg, #44ff88, #00ddff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
         font-weight: bold;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+        margin-bottom: 8px;
+      }
+
+      .help-row {
+        margin: 5px 0;
+        color: #a0a0b0;
+        display: flex;
+        gap: 12px;
+      }
+
+      .help-key {
+        color: #44ff88;
+        font-weight: bold;
+        min-width: 80px;
+        text-transform: uppercase;
+        font-size: 10px;
+      }
+
+      .help-description {
+        flex: 1;
+        color: #7080a0;
+      }
+
+      /* Legend */
+      .legend-row {
+        margin: 6px 0;
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+      }
+
+      .legend-dot.player {
+        background: #44aaff;
+        box-shadow: 0 0 8px #44aaff;
+      }
+
+      .legend-dot.enemy {
+        background: #ff4444;
+        box-shadow: 0 0 8px #ff4444;
+      }
+
+      .legend-dot.projectile {
+        background: #ffff44;
+        box-shadow: 0 0 8px #ffff44;
+      }
+
+      /* Top-right debugging info (optional) */
+      #debug-info {
+        position: absolute;
+        top: 16px;
+        right: 16px;
+        background: rgba(20, 20, 25, 0.95);
+        padding: 12px;
+        border-radius: 6px;
+        border: 1px solid rgba(100, 100, 120, 0.3);
+        font-size: 10px;
+        color: #808090;
+        line-height: 1.4;
+        max-width: 200px;
+        opacity: 0.7;
+      }
+
+      @media (max-width: 768px) {
+        #ui, #help {
+          width: 220px;
+          font-size: 11px;
+          padding: 12px;
+        }
+        #end-message {
+          font-size: 24px;
+        }
       }
     </style>
   </head>
   <body>
-    <canvas id="canvas"></canvas>
-    <div id="ui">
-      <div style="color: #ff8040; font-weight: bold; margin-bottom: 8px;">MERCICAT VERTICAL SLICE</div>
-      <div class="stat">
-        <span class="label">Status:</span>
-        <span id="status" class="value">Connecting...</span>
+    <!-- Menu System Container -->
+    <div id="menu-container"></div>
+
+    <!-- Game Container -->
+    <div id="game-container" style="display: none;">
+      <canvas id="canvas"></canvas>
+
+      <!-- Top-left HUD -->
+      <div id="ui">
+        <div>⚔ MERCICAT v2</div>
+        <div class="stat">
+          <span class="label">Status</span>
+          <span id="status" class="value">Connecting...</span>
+        </div>
+        <div class="stat">
+          <span class="label">Tick</span>
+          <span id="tick" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">FPS</span>
+          <span id="fps" class="value">60</span>
+        </div>
+        <div class="stat">
+          <span class="label">Wave</span>
+          <span id="wave" class="value">1</span>
+        </div>
+        <div class="stat">
+          <span class="label">Players</span>
+          <span id="players" class="value">1</span>
+        </div>
+        <div class="stat">
+          <span class="label">Enemies</span>
+          <span id="enemies" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Health</span>
+          <span id="health" class="value">100/100</span>
+        </div>
+        <div class="stat">
+          <span class="label">Score</span>
+          <span id="score" class="value">0</span>
+        </div>
+        <div class="stat">
+          <span class="label">Phase</span>
+          <span id="phase" class="value">waveActive</span>
+        </div>
       </div>
-      <div class="stat">
-        <span class="label">Tick:</span>
-        <span id="tick" class="value">0</span>
+
+      <!-- Game Over / Victory Screen -->
+      <div id="end-screen" aria-live="assertive">
+        <div id="end-message">Victory! Wave 5 Complete</div>
+        <button id="restart" type="button">→ Restart ←</button>
       </div>
-      <div class="stat">
-        <span class="label">FPS:</span>
-        <span id="fps" class="value">60</span>
-      </div>
-      <div class="stat">
-        <span class="label">Wave:</span>
-        <span id="wave" class="value">1</span>
-      </div>
-      <div class="stat">
-        <span class="label">Players:</span>
-        <span id="players" class="value">0</span>
-      </div>
-      <div class="stat">
-        <span class="label">Enemies:</span>
-        <span id="enemies" class="value">0</span>
-      </div>
-      <div class="stat">
-        <span class="label">Health:</span>
-        <span id="health" class="value">100 / 100</span>
-      </div>
-      <div class="stat">
-        <span class="label">Score:</span>
-        <span id="score" class="value">0</span>
-      </div>
-      <div class="stat">
-        <span class="label">Phase:</span>
-        <span id="phase" class="value">playing</span>
+
+      <!-- Bottom-left Controls Help -->
+      <div id="help">
+        <div>⌨ CONTROLS</div>
+        <div class="help-row">
+          <span class="help-key">WASD</span>
+          <span class="help-description">Move around arena</span>
+        </div>
+        <div class="help-row">
+          <span class="help-key">MOUSE</span>
+          <span class="help-description">Aim & attack</span>
+        </div>
+        <div class="help-row">
+          <span class="help-key">SPACE</span>
+          <span class="help-description">Alternative fire</span>
+        </div>
+        <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid rgba(80, 80, 90, 0.3);">
+          <div style="color: #44ff88; font-weight: bold; font-size: 10px; letter-spacing: 0.5px; margin-bottom: 6px;">ENTITIES</div>
+          <div class="legend-row">
+            <div class="legend-dot player"></div>
+            <span style="color: #7080a0;">You (Blue Cat)</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-dot enemy"></div>
+            <span style="color: #7080a0;">Enemies (Red Rats)</span>
+          </div>
+          <div class="legend-row">
+            <div class="legend-dot projectile"></div>
+            <span style="color: #7080a0;">Projectiles</span>
+          </div>
+        </div>
       </div>
     </div>
-    <div id="end-screen" aria-live="assertive">
-      <div id="end-message">Victory! Wave 5 Complete</div>
-      <button id="restart" type="button">Restart</button>
-    </div>
-    <div id="help">
-      <div style="color: #ff8040; font-weight: bold; margin-bottom: 6px;">CONTROLS</div>
-      <div class="help-row"><span class="help-key">WASD</span> Move</div>
-      <div class="help-row"><span class="help-key">MOUSE</span> Aim & Attack</div>
-      <div class="help-row" style="margin-top: 8px; color: #4080f0;">■ Blue = You</div>
-      <div class="help-row" style="color: #ff6040;">■ Red = Enemies</div>
-      <div class="help-row" style="color: #ffff00;">○ Yellow = Projectiles</div>
-    </div>
+
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

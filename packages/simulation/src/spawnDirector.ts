@@ -30,53 +30,87 @@ export function advanceSpawnDirector(state: GameState, rng: SeededRandom, events
   }
 }
 
-/** Select a stable, affordable composition whose total cost never exceeds the budget. */
+/** Select a stable, affordable composition whose total cost never exceeds the budget.
+ * Supports multiple role groups to allow high-budget waves to fill meaningful role counts
+ * while maintaining the 2-per-role-per-group diversity invariant.
+ */
 export function selectEnemyComposition(wave: number, playerCount: number, difficulty: Difficulty, rng: SeededRandom, budgetMultiplier = 1): Record<EnemyRole, number> {
   let remaining = Math.max(1, Math.round(calculateThreatBudget(wave, playerCount, difficulty) * budgetMultiplier));
-  const roles = (Object.keys(ENEMY_ROLES) as EnemyRole[])
+  const allRoles = (Object.keys(ENEMY_ROLES) as EnemyRole[])
     .filter((role) => ENEMY_ROLES[role].unlockWave <= wave).sort();
-  // Shuffle candidates with the supplied seeded stream; output serialization
-  // remains alphabetically sorted below, while seeds can produce real variety.
-  for (let i = roles.length - 1; i > 0; i -= 1) {
-    const j = rng.nextInt(0, i); [roles[i], roles[j]] = [roles[j], roles[i]];
-  }
+
   const composition: Partial<Record<EnemyRole, number>> = {};
-  // Compositions are repeated legal two-member groups. This keeps the
-  // per-group max-two invariant while allowing high-budget waves to reach
-  // meaningful role counts (up to six).
-  const maxPerRole = 2;
-  // Seed the queue with two distinct roles whenever the budget can afford such
-  // a pair. Without this fallback, the weighted fill below can spend the
-  // entire low budget on the same cheap role (or converge to the same capped
-  // composition for many seeds). Pair ordering is stable, and the choice is
-  // made only through SeededRandom so replay streams remain deterministic.
-  const affordablePairs: Array<[EnemyRole, EnemyRole]> = [];
-  for (let i = 0; i < roles.length; i += 1) {
-    for (let j = i + 1; j < roles.length; j += 1) {
-      if (ENEMY_ROLES[roles[i]].threatCost + ENEMY_ROLES[roles[j]].threatCost <= remaining) {
-        affordablePairs.push([roles[i], roles[j]]);
+  const maxPerRolePerGroup = 2;
+  let groupCount = 0;
+
+  // Build role groups until budget is exhausted.
+  // Each group is independent: the 2-per-role cap applies within each group.
+  while (remaining > 0) {
+    groupCount += 1;
+
+    // For each group, start with two distinct roles when possible.
+    // Shuffle to avoid deterministic pairing.
+    const groupRoles = [...allRoles];
+    for (let i = groupRoles.length - 1; i > 0; i -= 1) {
+      const j = rng.nextInt(0, i);
+      [groupRoles[i], groupRoles[j]] = [groupRoles[j], groupRoles[i]];
+    }
+
+    const groupComposition: Partial<Record<EnemyRole, number>> = {};
+    const affordablePairs: Array<[EnemyRole, EnemyRole]> = [];
+
+    // Find all affordable pairs for this group
+    for (let i = 0; i < groupRoles.length; i += 1) {
+      for (let j = i + 1; j < groupRoles.length; j += 1) {
+        if (ENEMY_ROLES[groupRoles[i]].threatCost + ENEMY_ROLES[groupRoles[j]].threatCost <= remaining) {
+          affordablePairs.push([groupRoles[i], groupRoles[j]]);
+        }
       }
     }
-  }
-  if (affordablePairs.length > 0) {
-    const [first, second] = affordablePairs[rng.nextInt(0, affordablePairs.length - 1)];
-    composition[first] = 1;
-    composition[second] = 1;
-    remaining -= ENEMY_ROLES[first].threatCost + ENEMY_ROLES[second].threatCost;
-  }
-  while (remaining > 0) {
-    const groupCounts = roles.reduce((out, role) => { out[role] = (composition[role] ?? 0) % 2; return out; }, {} as Record<EnemyRole, number>);
-    const affordable = roles.filter((role) => ENEMY_ROLES[role].threatCost <= remaining && (composition[role] ?? 0) < maxPerRole);
-    if (!affordable.length) break;
-    const totalWeight = affordable.reduce((sum, role) => sum + ENEMY_ROLES[role].spawnWeight, 0);
-    let roll = rng.nextFloat() * totalWeight;
-    let selected = affordable[affordable.length - 1];
-    for (const role of affordable) {
-      roll -= ENEMY_ROLES[role].spawnWeight;
-      if (roll < 0) { selected = role; break; }
+
+    // Start the group with a pair if available
+    let groupRemaining = remaining;
+    if (affordablePairs.length > 0) {
+      const [first, second] = affordablePairs[rng.nextInt(0, affordablePairs.length - 1)];
+      groupComposition[first] = 1;
+      groupComposition[second] = 1;
+      groupRemaining -= ENEMY_ROLES[first].threatCost + ENEMY_ROLES[second].threatCost;
     }
-    remaining -= ENEMY_ROLES[selected].threatCost;
-    composition[selected] = (composition[selected] ?? 0) + 1;
+
+    // Fill the group using weighted selection
+    while (groupRemaining > 0) {
+      const affordable = groupRoles.filter(
+        (role) => ENEMY_ROLES[role].threatCost <= groupRemaining && (groupComposition[role] ?? 0) < maxPerRolePerGroup
+      );
+      if (!affordable.length) break;
+
+      const totalWeight = affordable.reduce((sum, role) => sum + ENEMY_ROLES[role].spawnWeight, 0);
+      let roll = rng.nextFloat() * totalWeight;
+      let selected = affordable[affordable.length - 1];
+      for (const role of affordable) {
+        roll -= ENEMY_ROLES[role].spawnWeight;
+        if (roll < 0) { selected = role; break; }
+      }
+
+      groupRemaining -= ENEMY_ROLES[selected].threatCost;
+      groupComposition[selected] = (groupComposition[selected] ?? 0) + 1;
+    }
+
+    // Merge group into overall composition
+    const groupSpent = Object.entries(groupComposition).reduce(
+      (sum, [role, count]) => sum + ENEMY_ROLES[role as EnemyRole].threatCost * count,
+      0
+    );
+    remaining -= groupSpent;
+
+    for (const role of allRoles) {
+      if (groupComposition[role]) {
+        composition[role] = (composition[role] ?? 0) + groupComposition[role];
+      }
+    }
+
+    // Avoid infinite loops: if we spent less than the minimum role cost, stop
+    if (groupSpent === 0) break;
   }
 
   return Object.fromEntries(Object.keys(composition).sort()
